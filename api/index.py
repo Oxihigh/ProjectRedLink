@@ -453,6 +453,9 @@ def check_eligibility(current_user = Depends(get_current_user)):
             return {"eligible": True, "message": "You're a Hero (First time donor)"}
             
         days_since = (date.today() - date.fromisoformat(last_donation)).days
+        if days_since < 0:
+            days_since = 0 # Handle timezone differences (e.g., IST vs UTC)
+            
         if days_since >= 90:
             return {"eligible": True, "message": "You're a Hero Again! You are eligible to donate."}
         else:
