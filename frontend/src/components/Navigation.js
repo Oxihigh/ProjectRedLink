@@ -31,7 +31,7 @@ export default function Navigation({ session, userProfile, onShowPublicRequest }
           Red<span className="text-dark">Link</span>
         </div>
         <div className="flex-align">
-          <button onClick={onShowPublicRequest} className="btn btn-outline mr-4" style={{ borderColor: 'var(--text)', color: 'var(--text)' }}>
+          <button onClick={onShowPublicRequest} className="btn btn-outline mr-4">
             Request Blood
           </button>
           {!session ? (

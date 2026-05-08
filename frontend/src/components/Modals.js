@@ -150,10 +150,14 @@ export function PublicRequestForm({ onClose }) {
           <input type="file" accept="image/*" required onChange={e => setDocumentFile(e.target.files[0])} />
           <small className="text-gray mt-1">Our AI instantly verifies documents to prevent spam.</small>
         </div>
-        <button type="submit" className="btn btn-red full-width mt-4" disabled={isVerifying}>
-          {isVerifying ? 'Verifying Document with AI...' : 'Broadcast Now'}
-        </button>
-        <button type="button" className="btn btn-outline full-width mt-2" onClick={onClose} disabled={isVerifying}>Cancel</button>
+        <div className="flex-align" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+          <button type="submit" className="btn btn-red full-width" disabled={isVerifying}>
+            {isVerifying ? 'Verifying...' : 'Broadcast Now'}
+          </button>
+          <button type="button" className="btn btn-outline full-width" onClick={onClose} disabled={isVerifying}>
+            Cancel
+          </button>
+        </div>
       </form>
     </section>
   );
