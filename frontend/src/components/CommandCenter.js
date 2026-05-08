@@ -25,10 +25,11 @@ export default function CommandCenter({ userProfile }) {
         setEligibility(res);
         
         if (res.eligible) {
-          // Fetch initial active requests for their pincode
+          // Fetch initial active requests for their pincode and blood group
           supabase.from('blood_requests')
             .select('*')
             .eq('pincode', userProfile.pincode)
+            .eq('blood_group', userProfile.blood_group)
             .order('created_at', { ascending: false })
             .then(({ data }) => {
               if (data) setLiveFeed(data);
@@ -37,7 +38,9 @@ export default function CommandCenter({ userProfile }) {
           // Donor realtime feed
           channel = supabase.channel(`public:blood_requests:${Date.now()}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'blood_requests', filter: `pincode=eq.${userProfile.pincode}` }, payload => {
-              setLiveFeed(prev => [payload.new, ...prev]);
+              if (payload.new.blood_group === userProfile.blood_group) {
+                setLiveFeed(prev => [payload.new, ...prev]);
+              }
             })
             .subscribe();
         }
