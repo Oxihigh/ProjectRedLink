@@ -126,3 +126,14 @@ DROP PUBLICATION IF EXISTS supabase_realtime;
 CREATE PUBLICATION supabase_realtime;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.blood_requests;
 
+-- ==========================================
+-- PHASE 4 SCHEMA ADDITIONS (SMS Rate Limiting)
+-- ==========================================
+
+CREATE TABLE public.sms_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    phone_number TEXT NOT NULL,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.sms_logs ENABLE ROW LEVEL SECURITY;
+-- Internal backend table, no public access policies needed.
