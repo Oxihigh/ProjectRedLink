@@ -127,13 +127,27 @@ CREATE PUBLICATION supabase_realtime;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.blood_requests;
 
 -- ==========================================
--- PHASE 4 SCHEMA ADDITIONS (SMS Rate Limiting)
+-- PHASE 4 SCHEMA ADDITIONS (Call Rate Limiting)
 -- ==========================================
 
-CREATE TABLE public.sms_logs (
+CREATE TABLE public.call_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone_number TEXT NOT NULL,
     sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-ALTER TABLE public.sms_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.call_logs ENABLE ROW LEVEL SECURITY;
+-- Internal backend table, no public access policies needed.
+
+-- ==========================================
+-- PHASE 5 SCHEMA ADDITIONS (Call Queue for Webhooks)
+-- ==========================================
+
+CREATE TABLE public.call_queue (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    request_id UUID REFERENCES public.blood_requests(id) ON DELETE CASCADE,
+    phone_number TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'calling', 'completed'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.call_queue ENABLE ROW LEVEL SECURITY;
 -- Internal backend table, no public access policies needed.

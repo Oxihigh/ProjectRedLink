@@ -3,7 +3,7 @@ import uuid
 from typing import Optional, List, Dict
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, status, Request, Form, UploadFile, File, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -11,6 +11,11 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 
 load_dotenv()
+
+try:
+    from api.sms_alert import trigger_urgent_blood_alert
+except ImportError:
+    from sms_alert import trigger_urgent_blood_alert
 
 import base64
 import json
@@ -139,8 +144,6 @@ def update_profile(profile_update: UserUpdateRequest, current_user = Depends(get
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-from fastapi import FastAPI, Depends, HTTPException, status, Request
-
 @app.get("/search", response_model=List[SearchResponseDonor])
 def search_donors(pincode: int, blood_group: str):
     try:
@@ -235,6 +238,7 @@ def donor_confirm_donation(payload: DonationConfirmRequest, current_user = Depen
 @app.post("/blood-requests")
 async def create_blood_request(
     request: Request,
+    background_tasks: BackgroundTasks,
     blood_group: str = Form(...),
     pincode: int = Form(...),
     hospital_name: str = Form(...),
@@ -298,6 +302,11 @@ async def create_blood_request(
             "phone_number": phone_number,
             "success_token": success_token
         }).execute()
+        
+        # 4. Trigger the cascading voice alerts in the background
+        request_id = res.data[0]["id"]
+        background_tasks.add_task(trigger_urgent_blood_alert, request_id, pincode, blood_group)
+        
         return {"message": "Blood request verified by AI and broadcasted.", "request": res.data[0], "success_token": success_token}
     except HTTPException:
         raise
@@ -440,6 +449,16 @@ def cleanup_old_requests():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/cron/ping-supabase")
+def ping_supabase():
+    """Vercel cron endpoint: pings Supabase to prevent the free tier project from pausing due to inactivity."""
+    try:
+        # A simple query that is fast but registers as activity
+        res = supabase.table("users").select("id").limit(1).execute()
+        return {"message": "Ping successful, Supabase is awake!", "status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/check-eligibility")
 def check_eligibility(current_user = Depends(get_current_user)):
     """Check if donor cooldown is over."""
@@ -466,4 +485,22 @@ def check_eligibility(current_user = Depends(get_current_user)):
 @app.get("/")
 def read_root():
     return {"message": "Welcome to Project RedLink API - Phase 3 Complete"}
- 
+
+try:
+    from api.sms_alert import handle_call_disconnect
+except ImportError:
+    from sms_alert import handle_call_disconnect
+
+@app.post("/api/twilio-webhook")
+async def twilio_webhook(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    request_id: str,
+    To: str = Form(...)
+):
+    """
+    Webhook endpoint for Twilio StatusCallbacks.
+    Fired when a call disconnects (completed, failed, busy, etc.).
+    """
+    background_tasks.add_task(handle_call_disconnect, request_id, To)
+    return {"message": "Webhook received and task queued"}

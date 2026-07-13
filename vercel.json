@@ -16,6 +16,10 @@
     {
       "path": "/cron/cleanup",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/cron/ping-supabase",
+      "schedule": "0 0 */3 * *"
     }
   ]
 }
