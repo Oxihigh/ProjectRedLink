@@ -24,6 +24,18 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
 
   const res = await fetch(`${API_URL}${endpoint}`, options);
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'API Error');
+  if (!res.ok) {
+    let errMsg = 'API Error';
+    if (data.detail) {
+      if (Array.isArray(data.detail)) {
+        errMsg = data.detail.map(err => `${err.loc ? err.loc.join('.') : 'Error'}: ${err.msg}`).join(', ');
+      } else if (typeof data.detail === 'string') {
+        errMsg = data.detail;
+      } else {
+        errMsg = JSON.stringify(data.detail);
+      }
+    }
+    throw new Error(errMsg);
+  }
   return data;
 }

@@ -133,7 +133,7 @@ export function PublicRequestForm({ onClose }) {
           <div className="flex-align gap-2">
             <input type="number" min="100000" max="999999" placeholder="e.g. 100000" required style={{ flexGrow: 1 }}
               value={formData.pincode} onChange={e => setFormData({ ...formData, pincode: e.target.value })} />
-            <button type="button" className="btn btn-outline" onClick={handleDetectLoc} style={{ padding: '0.8rem', borderColor: 'var(--text)', color: 'var(--text)' }} title="Detect Pincode">📍</button>
+            <button type="button" className="btn btn-outline" onClick={handleDetectLoc} style={{ padding: '0.8rem' }} title="Detect Pincode">📍</button>
           </div>
         </div>
         <div className="input-group full-width">

@@ -69,6 +69,7 @@ export default function WizardRegistration({ onComplete }) {
   };
 
   const handleSubmit = async () => {
+    setAlertMsg("");
     const cleanedPhone = wizData.phone_number.replace(/\D/g, '');
     if (cleanedPhone.length !== 10) {
       setAlertMsg("Please enter a valid 10-digit Indian phone number (no country code).");
@@ -189,7 +190,7 @@ export default function WizardRegistration({ onComplete }) {
         <div className="wizard-step active">
           <h2 className="wizard-question">Are you currently taking any disqualifying medication, such as an asthma inhaler?</h2>
           <div className="wizard-buttons" style={{ flexDirection: 'column' }}>
-            <button className="btn btn-outline" style={{ fontSize: '1.5rem', borderColor: 'var(--text)', color: 'var(--text)' }} onClick={handleNext}>No, I am not</button>
+            <button className="btn btn-outline" style={{ fontSize: '1.5rem' }} onClick={handleNext}>No, I am not</button>
             <button className="btn btn-red" style={{ fontSize: '1.5rem' }} 
               onClick={() => disqualify("You cannot donate blood if you are using certain medications like an asthma inhaler.")}>Yes, I am</button>
           </div>
