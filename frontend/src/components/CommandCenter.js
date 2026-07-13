@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { apiCall } from "../utils/api";
 import { supabase } from "../utils/supabase";
+import PushNotificationPrompt from "./PushNotificationPrompt";
 
 export default function CommandCenter({ userProfile }) {
   const [activeTab, setActiveTab] = useState('tab-home');
@@ -115,6 +116,7 @@ export default function CommandCenter({ userProfile }) {
 
   return (
     <div className="app-container mt-10">
+      <PushNotificationPrompt />
       <div className="app-tabs">
         <button className={`tab-btn ${activeTab === 'tab-home' ? 'active' : ''}`} onClick={() => setActiveTab('tab-home')}>Home</button>
         <button className={`tab-btn ${activeTab === 'tab-network' ? 'active' : ''}`} onClick={() => setActiveTab('tab-network')}>Network Actions</button>

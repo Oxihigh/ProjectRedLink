@@ -102,8 +102,11 @@ export function PublicRequestForm({ onClose }) {
         )}
 
         <div className="bg-dark p-6 rounded" style={{ border: '2px solid var(--red)', margin: '2rem 0' }}>
-          <p className="text-gray mb-2 font-bold text-lg">Your Success Token</p>
-          <h1 className="text-white" style={{ fontSize: '3.5rem', letterSpacing: '4px', margin: 0 }}>{successToken}</h1>
+          <p className="text-gray mb-2 font-bold text-lg">Your Blood Donor Token</p>
+          <div className="flex-align" style={{ justifyContent: 'center', gap: '1rem' }}>
+            <h1 className="text-white" style={{ fontSize: '3.5rem', letterSpacing: '4px', margin: 0 }}>{successToken}</h1>
+            <button type="button" className="btn btn-outline" style={{ padding: '0.5rem 1rem' }} onClick={() => navigator.clipboard.writeText(successToken)} title="Copy Token">📋 Copy</button>
+          </div>
           <p className="text-red mt-4 text-sm font-bold">WARNING: Save this token! You will need it to close the request once you receive blood.</p>
         </div>
 
@@ -150,7 +153,7 @@ export function PublicRequestForm({ onClose }) {
           <input type="file" accept="image/*" required onChange={e => setDocumentFile(e.target.files[0])} />
           <small className="text-gray mt-1">Our AI instantly verifies documents to prevent spam.</small>
         </div>
-        <div className="flex-align" style={{ gap: '1rem', marginTop: '1.5rem' }}>
+        <div className="flex-align" style={{ gap: '1rem', marginTop: '1.5rem', gridColumn: '1 / -1' }}>
           <button type="submit" className="btn btn-red full-width" disabled={isVerifying}>
             {isVerifying ? 'Verifying...' : 'Broadcast Now'}
           </button>
@@ -181,14 +184,16 @@ export function CloseRequestForm({ onClose }) {
   return (
     <section className="glass-panel p-8 border-red mt-10">
       <h2 className="section-title text-dark">Close Emergency Request</h2>
-      <p className="text-gray mb-6">Enter the Success Token you received when broadcasting your emergency to close the loop and award points to your donor hero.</p>
+      <p className="text-gray mb-6">Enter the Blood Donor Token you received when broadcasting your emergency to close the loop and award points to your donor hero.</p>
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="input-group full-width">
-          <label>Success Token</label>
+          <label>Blood Donor Token</label>
           <input type="text" placeholder="e.g. A4B9F2" required value={token} onChange={e => setToken(e.target.value)} />
         </div>
-        <button type="submit" className="btn btn-red full-width mt-4">Confirm Handshake & Close Request</button>
-        <button type="button" className="btn btn-outline full-width mt-2" onClick={onClose}>Cancel</button>
+        <div className="flex-align full-width" style={{ gap: '1rem', marginTop: '1.5rem', gridColumn: '1 / -1' }}>
+          <button type="submit" className="btn btn-red full-width">Confirm Handshake & Close Request</button>
+          <button type="button" className="btn btn-outline full-width" onClick={onClose}>Cancel</button>
+        </div>
       </form>
     </section>
   );

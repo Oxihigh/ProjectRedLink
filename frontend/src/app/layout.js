@@ -7,6 +7,7 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["700", "900"], variable: "-
 export const metadata = {
   title: "PROJECT RED LINK",
   description: "detect · direct · protect",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({ children }) {

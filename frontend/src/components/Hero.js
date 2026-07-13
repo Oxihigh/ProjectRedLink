@@ -34,11 +34,11 @@ export default function Hero({ onShowPublicRequest, onShowCloseRequest }) {
       
       <div className="mt-8 flex-align" style={{ gap: '1rem', justifyContent: 'flex-start', marginTop: '2rem' }}>
         <button onClick={handleDonorClick} className="btn btn-red">Join the Network</button>
-        <button onClick={onShowPublicRequest} className="btn btn-outline" style={{ borderColor: 'var(--text)', color: 'var(--text)' }}>
+        <button onClick={onShowPublicRequest} className="btn btn-outline">
           Broadcast Emergency (No Login)
         </button>
         <button onClick={onShowCloseRequest} className="btn btn-ghost" style={{ color: 'var(--gray)' }}>
-          Have a Success Token?
+          Have a Blood Donor Token?
         </button>
       </div>
     </section>

@@ -23,6 +23,7 @@ CREATE TABLE public.users (
     pincode INTEGER NOT NULL,
     phone_number TEXT NOT NULL,
     last_donation_date DATE, -- Nullable, used for cooldown logic
+    fcm_token TEXT, -- Firebase Cloud Messaging push notification token
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -66,88 +67,48 @@ ALTER TABLE public.contact_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Requesters can view their own contact logs" ON public.contact_logs
     FOR SELECT USING (true); -- IP logic handled in backend
 
--- 3. Reports Table (Shadow Banning)
 CREATE TABLE public.reports (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reporter_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     reported_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     reason TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.reports ENABLE ROW LEVEL SECURITY;
--- Keep reports private; only system checks them
 
--- 4. Donations Table (The Trust Handshake)
+CREATE POLICY "Users can insert reports" ON public.reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+
 CREATE TABLE public.donations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requester_id TEXT NOT NULL, -- IP Address
     donor_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-    requester_confirmed BOOLEAN DEFAULT FALSE,
-    donor_confirmed BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    blood_group TEXT NOT NULL,
+    hospital_name TEXT NOT NULL,
+    donated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can view their own donations" ON public.donations
-    FOR SELECT USING (true); -- Backend handles filtering
 
 -- ==========================================
--- PHASE 3 SCHEMA ADDITIONS
+-- PHASE 3 SCHEMA ADDITIONS (Realtime Blood Requests)
 -- ==========================================
 
--- 1. Blood Requests Table
 CREATE TABLE public.blood_requests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    requester_id TEXT NOT NULL, -- IP Address
-    blood_group blood_type NOT NULL,
+    requester_id TEXT NOT NULL,
+    blood_group TEXT NOT NULL,
     pincode INTEGER NOT NULL,
-    hospital_name TEXT,
-    location_details TEXT,
-    phone_number TEXT,
-    success_token TEXT,
+    hospital_name TEXT NOT NULL,
+    phone_number TEXT NOT NULL,
+    status TEXT DEFAULT 'active',
+    success_token TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.blood_requests ENABLE ROW LEVEL SECURITY;
 
--- Allow anyone to view active requests
-CREATE POLICY "Users can view blood requests" ON public.blood_requests
-    FOR SELECT USING (true);
+CREATE POLICY "Anyone can view blood requests" ON public.blood_requests FOR SELECT USING (true);
 
--- Allow anyone to insert (Backend rate limits by IP)
-CREATE POLICY "Requesters can insert blood requests" ON public.blood_requests
-    FOR INSERT WITH CHECK (true);
-
--- Allow system/users to delete
-CREATE POLICY "Allow deletion of requests" ON public.blood_requests
-    FOR DELETE USING (true); -- Usually restricted to admin or cron, leaving true for MVP cron endpoint
-
--- 2. Enable Supabase Realtime for blood_requests
--- Drop it if it exists to prevent errors in some Supabase instances
-DROP PUBLICATION IF EXISTS supabase_realtime;
-CREATE PUBLICATION supabase_realtime;
+BEGIN;
+  DROP PUBLICATION IF EXISTS supabase_realtime;
+  CREATE PUBLICATION supabase_realtime;
+COMMIT;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.blood_requests;
-
--- ==========================================
--- PHASE 4 SCHEMA ADDITIONS (Call Rate Limiting)
--- ==========================================
-
-CREATE TABLE public.call_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    phone_number TEXT NOT NULL,
-    sent_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE public.call_logs ENABLE ROW LEVEL SECURITY;
--- Internal backend table, no public access policies needed.
-
--- ==========================================
--- PHASE 5 SCHEMA ADDITIONS (Call Queue for Webhooks)
--- ==========================================
-
-CREATE TABLE public.call_queue (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    request_id UUID REFERENCES public.blood_requests(id) ON DELETE CASCADE,
-    phone_number TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending', -- 'pending', 'calling', 'completed'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
-ALTER TABLE public.call_queue ENABLE ROW LEVEL SECURITY;
--- Internal backend table, no public access policies needed.

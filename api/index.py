@@ -13,9 +13,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 try:
-    from api.sms_alert import trigger_urgent_blood_alert
+    from api.fcm_alert import broadcast_fcm_alert
 except ImportError:
-    from sms_alert import trigger_urgent_blood_alert
+    from fcm_alert import broadcast_fcm_alert
 
 import base64
 import json
@@ -302,9 +302,9 @@ async def create_blood_request(
             "success_token": success_token
         }).execute()
         
-        # 4. Trigger the cascading voice alerts (await it directly so Vercel doesn't kill it prematurely)
+        # 4. Trigger the FCM Push Notifications
         request_id = res.data[0]["id"]
-        await trigger_urgent_blood_alert(request_id, pincode, blood_group)
+        await broadcast_fcm_alert(request_id, pincode, blood_group)
         
         return {"message": "Blood request verified by AI and broadcasted.", "request": res.data[0], "success_token": success_token}
     except HTTPException:
@@ -485,20 +485,11 @@ def check_eligibility(current_user = Depends(get_current_user)):
 def read_root():
     return {"message": "Welcome to Project RedLink API - Phase 3 Complete"}
 
-try:
-    from api.sms_alert import handle_call_disconnect
-except ImportError:
-    from sms_alert import handle_call_disconnect
-
-@app.post("/api/twilio-webhook")
-async def twilio_webhook(
-    request: Request,
-    request_id: str,
-    To: str = Form(...)
-):
-    """
-    Webhook endpoint for Twilio StatusCallbacks.
-    Fired when a call disconnects (completed, failed, busy, etc.).
-    """
-    await handle_call_disconnect(request_id, To)
-    return {"message": "Webhook received and task queued"}
+@app.patch("/users/fcm-token")
+def update_fcm_token(fcm_token: str = Body(..., embed=True), current_user = Depends(get_current_user)):
+    """Saves the user's Firebase Cloud Messaging token to Supabase for push notifications."""
+    try:
+        supabase.table("users").update({"fcm_token": fcm_token}).eq("id", current_user.id).execute()
+        return {"message": "FCM token updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

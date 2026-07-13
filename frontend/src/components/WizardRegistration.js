@@ -69,17 +69,19 @@ export default function WizardRegistration({ onComplete }) {
   };
 
   const handleSubmit = async () => {
-    if (!wizData.phone_number.trim()) {
-      setAlertMsg("Enter a valid phone number.");
+    const cleanedPhone = wizData.phone_number.replace(/\D/g, '');
+    if (cleanedPhone.length !== 10) {
+      setAlertMsg("Please enter a valid 10-digit Indian phone number (no country code).");
       return;
     }
+    const formattedPhone = `+91${cleanedPhone}`;
     try {
       await apiCall('/register', 'POST', {
         name: wizData.name,
         role: wizData.role,
         blood_group: wizData.blood_group,
         pincode: parseInt(wizData.pincode),
-        phone_number: wizData.phone_number,
+        phone_number: formattedPhone,
         last_donation_date: wizData.last_donation_date || null
       });
       alert('Profile created successfully!');
@@ -124,13 +126,19 @@ export default function WizardRegistration({ onComplete }) {
           <h2 className="wizard-question">Welcome to RedLink! Are you here to Donate Blood or Request Blood?</h2>
           <div className="wizard-buttons" style={{ flexDirection: 'column' }}>
             <button className={`btn ${wizData.role === 'donor' ? 'btn-red' : 'btn-outline'}`} 
-              style={{ fontSize: '1.5rem', borderColor: wizData.role === 'donor' ? 'var(--red)' : 'var(--text)', color: wizData.role === 'donor' ? 'var(--bg)' : 'var(--text)' }} 
-              onClick={() => { setWizData({...wizData, role: 'donor'}); handleNext(); }}>
+              style={{ fontSize: '1.5rem' }} 
+              onClick={() => { 
+                setWizData(prev => ({...prev, role: 'donor'})); 
+                setCurrentStepIdx(1); 
+              }}>
               I am here to Donate Blood (Hero)
             </button>
             <button className={`btn ${wizData.role === 'requester' ? 'btn-red' : 'btn-outline'}`} 
-              style={{ fontSize: '1.5rem', borderColor: wizData.role === 'requester' ? 'var(--red)' : 'var(--text)', color: wizData.role === 'requester' ? 'var(--bg)' : 'var(--text)' }} 
-              onClick={() => { setWizData({...wizData, role: 'requester'}); handleNext(); }}>
+              style={{ fontSize: '1.5rem' }} 
+              onClick={() => { 
+                setWizData(prev => ({...prev, role: 'requester'})); 
+                setCurrentStepIdx(1); 
+              }}>
               I need to Request Blood
             </button>
           </div>
@@ -215,8 +223,8 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-phone' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Almost done! What's your phone number? We keep this private.</h2>
-          <input ref={inputRef} type="text" className="wizard-input" placeholder="e.g. +1 234 567 8900"
+          <h2 className="wizard-question">Almost done! What's your 10-digit phone number? We keep this private.</h2>
+          <input ref={inputRef} type="text" className="wizard-input" placeholder="e.g. 9876543210"
             value={wizData.phone_number} onChange={e => setWizData({...wizData, phone_number: e.target.value})} />
           <div className="wizard-buttons">
             <button className="btn btn-outline" onClick={handlePrev}>Back</button>
