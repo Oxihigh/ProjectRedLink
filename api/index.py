@@ -238,7 +238,6 @@ def donor_confirm_donation(payload: DonationConfirmRequest, current_user = Depen
 @app.post("/blood-requests")
 async def create_blood_request(
     request: Request,
-    background_tasks: BackgroundTasks,
     blood_group: str = Form(...),
     pincode: int = Form(...),
     hospital_name: str = Form(...),
@@ -303,9 +302,9 @@ async def create_blood_request(
             "success_token": success_token
         }).execute()
         
-        # 4. Trigger the cascading voice alerts in the background
+        # 4. Trigger the cascading voice alerts (await it directly so Vercel doesn't kill it prematurely)
         request_id = res.data[0]["id"]
-        background_tasks.add_task(trigger_urgent_blood_alert, request_id, pincode, blood_group)
+        await trigger_urgent_blood_alert(request_id, pincode, blood_group)
         
         return {"message": "Blood request verified by AI and broadcasted.", "request": res.data[0], "success_token": success_token}
     except HTTPException:
@@ -494,7 +493,6 @@ except ImportError:
 @app.post("/api/twilio-webhook")
 async def twilio_webhook(
     request: Request,
-    background_tasks: BackgroundTasks,
     request_id: str,
     To: str = Form(...)
 ):
@@ -502,5 +500,5 @@ async def twilio_webhook(
     Webhook endpoint for Twilio StatusCallbacks.
     Fired when a call disconnects (completed, failed, busy, etc.).
     """
-    background_tasks.add_task(handle_call_disconnect, request_id, To)
+    await handle_call_disconnect(request_id, To)
     return {"message": "Webhook received and task queued"}
