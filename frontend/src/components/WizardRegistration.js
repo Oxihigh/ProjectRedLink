@@ -38,9 +38,15 @@ export default function WizardRegistration({ onComplete }) {
       setAlertMsg("Please select an option.");
       return;
     }
-    if (step === 'step-name' && !wizData.name.trim()) {
-      setAlertMsg("Please enter your name.");
-      return;
+    if (step === 'step-name') {
+      const nameVal = wizData.name.trim();
+      if (!nameVal) {
+        setAlertMsg("Please enter your name.");
+        return;
+      } else if (nameVal.length < 2) {
+        setAlertMsg("Name should have at least 2 characters.");
+        return;
+      }
     }
     if (step === 'step-weight') {
       const w = parseInt(wizData.weight);
