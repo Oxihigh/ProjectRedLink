@@ -18,6 +18,7 @@ export default function WizardRegistration({ onComplete }) {
   const activeSteps = wizData.role === 'requester' ? STEPS_REQUESTER : STEPS_DONOR;
 
   const [alertMsg, setAlertMsg] = useState("");
+  const [isSuccess, setIsSuccess] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -91,8 +92,7 @@ export default function WizardRegistration({ onComplete }) {
         phone_number: formattedPhone,
         last_donation_date: wizData.last_donation_date || null
       });
-      alert('Profile created successfully!');
-      onComplete();
+      setIsSuccess(true);
     } catch (err) {
       alert(err.message);
     }
@@ -118,6 +118,29 @@ export default function WizardRegistration({ onComplete }) {
           <p className="text-dark font-bold text-2xl mb-8">Thank you for your honesty and willingness to help!</p>
           <div className="wizard-buttons">
             <button type="button" className="btn btn-outline" onClick={() => window.location.reload()}>Cancel / Logout</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSuccess) {
+    return (
+      <div className="wizard-container">
+        <div className="wizard-step active" style={{ textAlign: 'center' }}>
+          <h2 className="wizard-question text-red" style={{ fontSize: '2rem' }}>Profile Created!</h2>
+          <p className="text-gray text-xl mb-4">You're officially registered on RedLink.</p>
+          
+          <div className="bg-dark p-6 rounded" style={{ border: '2px solid var(--red)', margin: '1rem 0' }}>
+            <h3 className="text-white mb-4" style={{ fontSize: '1.2rem' }}>📱 Download Our App</h3>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://theredlinkproject.vercel.app/download" alt="Download App QR Code" style={{ margin: '0 auto', borderRadius: '8px', border: '4px solid white' }} />
+            <p className="mt-4 text-gray text-sm" style={{ lineHeight: '1.5' }}>
+              <strong className="text-red">IMPORTANT:</strong> You will <strong className="text-red">ONLY</strong> receive emergency blood requests if you have downloaded our mobile app and enabled push notifications.
+            </p>
+          </div>
+          
+          <div className="wizard-buttons flex-align" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+            <button className="btn btn-red" onClick={onComplete}>Done</button>
           </div>
         </div>
       </div>
