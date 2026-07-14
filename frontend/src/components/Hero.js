@@ -32,8 +32,11 @@ export default function Hero({ onShowPublicRequest, onShowCloseRequest }) {
         </p>
       </div>
       
-      <div className="mt-8 flex-align" style={{ gap: '1rem', justifyContent: 'flex-start', marginTop: '2rem' }}>
-        <button onClick={handleDonorClick} className="btn btn-red">Join the Network</button>
+      <div className="mt-8 flex-align" style={{ gap: '1rem', justifyContent: 'flex-start', marginTop: '2rem', flexWrap: 'wrap' }}>
+        <button onClick={handleDonorClick} className="btn btn-red">Login / Join Network</button>
+        <button onClick={() => window.dispatchEvent(new Event('trigger-install-pwa'))} className="btn btn-outline text-white" style={{borderColor: 'white', color: 'white'}}>
+          Download App
+        </button>
         <button onClick={onShowPublicRequest} className="btn btn-outline">
           Broadcast Emergency (No Login)
         </button>

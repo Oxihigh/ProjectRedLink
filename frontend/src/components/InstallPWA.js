@@ -37,8 +37,13 @@ export default function InstallPWA() {
       setIsInstalled(true);
       setDeferredPrompt(null);
     });
+    const triggerInstall = () => setIsDismissed(false);
+    window.addEventListener('trigger-install-pwa', triggerInstall);
 
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('trigger-install-pwa', triggerInstall);
+    };
   }, []);
 
   const handleInstallClick = async () => {
