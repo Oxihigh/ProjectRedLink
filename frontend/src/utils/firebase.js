@@ -24,14 +24,31 @@ if (typeof window !== "undefined") {
   }
 }
 
+export const registerServiceWorker = async () => {
+  if (typeof window !== "undefined" && 'serviceWorker' in navigator) {
+    try {
+      const swUrl = `/firebase-messaging-sw.js?apiKey=${firebaseConfig.apiKey || ''}&projectId=${firebaseConfig.projectId || ''}&messagingSenderId=${firebaseConfig.messagingSenderId || ''}&appId=${firebaseConfig.appId || ''}&authDomain=${firebaseConfig.authDomain || ''}&storageBucket=${firebaseConfig.storageBucket || ''}`;
+      const registration = await navigator.serviceWorker.register(swUrl);
+      console.log('Service Worker registered successfully');
+      return registration;
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
 export const requestNotificationPermission = async () => {
   if (typeof window === "undefined" || !messaging) return null;
   
   try {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
+      const registration = await registerServiceWorker();
       const currentToken = await getToken(messaging, { 
-        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY // Optional but recommended
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY, // Optional but recommended
+        serviceWorkerRegistration: registration || undefined
       });
       if (currentToken) {
         return currentToken;

@@ -132,10 +132,11 @@ export default function WizardRegistration({ onComplete }) {
           <p className="text-gray text-xl mb-4">You're officially registered on RedLink.</p>
           
           <div className="bg-dark p-6 rounded" style={{ border: '2px solid var(--red)', margin: '1rem 0' }}>
-            <h3 className="text-white mb-4" style={{ fontSize: '1.2rem' }}>📱 Download Our App</h3>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://theredlinkproject.vercel.app/download" alt="Download App QR Code" style={{ margin: '0 auto', borderRadius: '8px', border: '4px solid white' }} />
+            <h3 className="text-white mb-4" style={{ fontSize: '1.2rem' }}>📱 Install Web App</h3>
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://theredlinkproject.vercel.app/" alt="Install App QR Code" style={{ margin: '0 auto', borderRadius: '8px', border: '4px solid white' }} />
             <p className="mt-4 text-gray text-sm" style={{ lineHeight: '1.5' }}>
-              <strong className="text-red">IMPORTANT:</strong> You will <strong className="text-red">ONLY</strong> receive emergency blood requests if you have downloaded our mobile app and enabled push notifications.
+              <strong className="text-red">IMPORTANT:</strong> You will <strong className="text-red">ONLY</strong> receive emergency blood requests if you enable push notifications.
+              <br/> Scan this QR code on your phone and tap <strong>"Add to Home Screen"</strong> to install the app!
             </p>
           </div>
           

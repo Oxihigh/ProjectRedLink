@@ -13,11 +13,15 @@ export default function PushNotificationPrompt() {
       if (Notification.permission === "default") {
         setShowPrompt(true);
       } else if (Notification.permission === "granted") {
-        // If already granted but maybe backend doesn't have token, we can silently update
-        // We'll just listen for foreground messages
+        // Automatically fetch and save token if already granted
+        requestNotificationPermission().then(token => {
+          if (token) {
+            apiCall('/users/fcm-token', 'PATCH', { fcm_token: token }).catch(console.error);
+          }
+        });
+        
         onMessageListener().then(payload => {
           console.log("Foreground message received:", payload);
-          // Optional: Show a toast notification here
         }).catch(err => console.log('failed: ', err));
       }
     }

@@ -1,25 +1,23 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// Initialize the Firebase app in the service worker by passing in the
-// messagingSenderId.
-// This requires the developer to add this config later via env vars or string replacement
-// For now we will rely on URL params or a separate config script, or just wait for the user to provide their config.
-
-// Since the service worker needs config, we will load it from a query string when registering,
-// or the user can paste it here directly.
-
-// A placeholder for the user to fill in their Firebase Config:
+// Read Firebase config from URL query parameters during registration
+const urlParams = new URLSearchParams(location.search);
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: urlParams.get('apiKey'),
+  authDomain: urlParams.get('authDomain'),
+  projectId: urlParams.get('projectId'),
+  storageBucket: urlParams.get('storageBucket'),
+  messagingSenderId: urlParams.get('messagingSenderId'),
+  appId: urlParams.get('appId')
 };
 
-firebase.initializeApp(firebaseConfig);
+// Only initialize if we have the config (to prevent errors during standalone SW load)
+if (firebaseConfig.apiKey) {
+  firebase.initializeApp(firebaseConfig);
+} else {
+  console.warn("Firebase SW: Missing config parameters in URL");
+}
 
 const messaging = firebase.messaging();
 
@@ -54,4 +52,9 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Dummy fetch handler to satisfy PWA installation requirements
+self.addEventListener('fetch', (event) => {
+  // We don't intercept fetches, but having this listener allows the app to be installable
 });
