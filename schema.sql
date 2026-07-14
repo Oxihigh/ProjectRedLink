@@ -112,3 +112,57 @@ BEGIN;
   CREATE PUBLICATION supabase_realtime;
 COMMIT;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.blood_requests;
+
+-- ==========================================
+-- PHASE 4 SCHEMA ADDITIONS (PostGIS Proximity Matching)
+-- ==========================================
+
+-- Enable PostGIS extension
+CREATE EXTENSION IF NOT EXISTS postgis;
+
+-- Add location columns (geography type uses meters for distance calculations)
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS location geography(POINT);
+ALTER TABLE public.blood_requests ADD COLUMN IF NOT EXISTS location geography(POINT);
+
+-- Function to find nearby donors
+-- radius_km specifies search distance in kilometers
+CREATE OR REPLACE FUNCTION get_nearby_donors(
+    target_lat float,
+    target_lon float,
+    target_blood_group blood_type,
+    radius_km float DEFAULT 10.0
+)
+RETURNS TABLE (
+    id uuid,
+    name text,
+    blood_group blood_type,
+    pincode integer,
+    last_donation_date date,
+    lifesaver_points integer,
+    fcm_token text,
+    distance_meters float
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        u.id, 
+        u.name, 
+        u.blood_group, 
+        u.pincode, 
+        u.last_donation_date, 
+        u.lifesaver_points,
+        u.fcm_token,
+        ST_Distance(u.location, ST_SetSRID(ST_MakePoint(target_lon, target_lat), 4326)::geography) as distance_meters
+    FROM public.users u
+    WHERE u.role = 'donor'
+      AND u.is_banned = FALSE
+      AND u.is_suspicious = FALSE
+      AND u.blood_group = target_blood_group
+      AND ST_DWithin(
+          u.location, 
+          ST_SetSRID(ST_MakePoint(target_lon, target_lat), 4326)::geography, 
+          radius_km * 1000 -- Convert km to meters
+      )
+    ORDER BY distance_meters ASC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

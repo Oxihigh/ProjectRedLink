@@ -19,7 +19,21 @@ except ImportError:
 
 import base64
 import json
+import math
 from groq import Groq
+import pgeocode
+
+nomi = pgeocode.Nominatim('in')
+
+def get_lat_lon_wkt(pincode: int):
+    try:
+        location = nomi.query_postal_code(str(pincode))
+        lat, lon = location.latitude, location.longitude
+        if lat is not None and lon is not None and not math.isnan(lat) and not math.isnan(lon):
+            return f"POINT({lon} {lat})"
+    except Exception as e:
+        print(f"Geocoding error: {e}")
+    return None
 
 # Initialize Groq client
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
@@ -120,6 +134,9 @@ def register_profile(profile: UserRegistrationRequest, current_user = Depends(ge
             "phone_number": profile.phone_number,
             "last_donation_date": profile.last_donation_date.isoformat() if profile.last_donation_date else None,
         }
+        wkt = get_lat_lon_wkt(profile.pincode)
+        if wkt:
+            user_data["location"] = wkt
         response = supabase.table("users").upsert(user_data).execute()
         if not response.data:
             raise HTTPException(status_code=500, detail="Failed to create profile")
@@ -136,6 +153,11 @@ def update_profile(profile_update: UserUpdateRequest, current_user = Depends(get
     if "role" in update_data and update_data["role"] not in ["donor", "requester"]:
         raise HTTPException(status_code=400, detail="Invalid role.")
         
+    if "pincode" in update_data:
+        wkt = get_lat_lon_wkt(update_data["pincode"])
+        if wkt:
+            update_data["location"] = wkt
+        
     try:
         response = supabase.table("users").update(update_data).eq("id", current_user.id).execute()
         if not response.data:
@@ -147,7 +169,20 @@ def update_profile(profile_update: UserUpdateRequest, current_user = Depends(get
 @app.get("/search", response_model=List[SearchResponseDonor])
 def search_donors(pincode: int, blood_group: str):
     try:
-        response = supabase.table("users").select("id, name, blood_group, pincode, last_donation_date, lifesaver_points").eq("role", "donor").eq("pincode", pincode).eq("blood_group", blood_group).eq("is_banned", False).eq("is_suspicious", False).execute()
+        location = nomi.query_postal_code(str(pincode))
+        lat, lon = location.latitude, location.longitude
+        
+        if lat is None or math.isnan(lat):
+            # Fallback to exact match if geocoding fails
+            response = supabase.table("users").select("id, name, blood_group, pincode, last_donation_date, lifesaver_points").eq("role", "donor").eq("pincode", pincode).eq("blood_group", blood_group).eq("is_banned", False).eq("is_suspicious", False).execute()
+        else:
+            response = supabase.rpc('get_nearby_donors', {
+                'target_lat': float(lat), 
+                'target_lon': float(lon), 
+                'target_blood_group': blood_group, 
+                'radius_km': 10.0
+            }).execute()
+            
         donors = response.data
         eligible_donors = []
         today = date.today()
@@ -291,6 +326,7 @@ async def create_blood_request(
             raise HTTPException(status_code=500, detail="Failed to verify document with AI.")
 
         # 3. Document is verified, save to database
+        wkt = get_lat_lon_wkt(pincode)
         success_token = uuid.uuid4().hex[:6].upper()
         res = supabase.table("blood_requests").insert({
             "requester_id": ip_address,
@@ -299,7 +335,8 @@ async def create_blood_request(
             "hospital_name": hospital_name,
             "location_details": location_details,
             "phone_number": phone_number,
-            "success_token": success_token
+            "success_token": success_token,
+            "location": wkt
         }).execute()
         
         # 4. Trigger the FCM Push Notifications

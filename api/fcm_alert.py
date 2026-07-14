@@ -5,6 +5,10 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 import firebase_admin
 from firebase_admin import credentials, messaging
+import pgeocode
+import math
+
+nomi = pgeocode.Nominatim('in')
 
 logger = logging.getLogger(__name__)
 
@@ -44,17 +48,43 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
     try:
         ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
         
-        # In a real production app, we would filter by pincode proximity (PostGIS).
-        # For now, we fetch donors matching blood_group who have an fcm_token.
-        response = supabase.table("users") \
-            .select("fcm_token") \
-            .eq("role", "donor") \
-            .eq("blood_group", blood_group) \
-            .not_.is_("fcm_token", "null") \
-            .or_(f"last_donation_date.lte.{ninety_days_ago},last_donation_date.is.null") \
-            .execute()
+        location = nomi.query_postal_code(str(pincode))
+        lat, lon = location.latitude, location.longitude
+        
+        eligible_donors = []
+        
+        if lat is None or math.isnan(lat):
+            # Fallback to exact pincode match
+            response = supabase.table("users") \
+                .select("fcm_token") \
+                .eq("role", "donor") \
+                .eq("blood_group", blood_group) \
+                .eq("pincode", pincode) \
+                .not_.is_("fcm_token", "null") \
+                .or_(f"last_donation_date.lte.{ninety_days_ago},last_donation_date.is.null") \
+                .execute()
+            eligible_donors = response.data
+        else:
+            # Use PostGIS proximity matching
+            response = supabase.rpc('get_nearby_donors', {
+                'target_lat': float(lat), 
+                'target_lon': float(lon), 
+                'target_blood_group': blood_group, 
+                'radius_km': 10.0
+            }).execute()
             
-        eligible_donors = response.data
+            # Filter donors by cooldown and token
+            today = datetime.now(timezone.utc).date()
+            for donor in response.data:
+                if not donor.get("fcm_token"):
+                    continue
+                if donor.get("last_donation_date"):
+                    last_donation = datetime.fromisoformat(donor["last_donation_date"]).date()
+                    if (today - last_donation).days >= 90:
+                        eligible_donors.append(donor)
+                else:
+                    eligible_donors.append(donor)
+                    
         if not eligible_donors:
             logger.info("No eligible donors with FCM tokens found.")
             return

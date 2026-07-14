@@ -6,3 +6,4 @@ python-dotenv>=1.0.0
 groq>=0.5.0
 python-multipart>=0.0.9
 firebase-admin>=6.5.0
+pgeocode>=0.3.0
