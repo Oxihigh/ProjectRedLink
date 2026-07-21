@@ -13,7 +13,8 @@ export default function InstallPWA() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    setAppUrl(window.location.origin || "https://theredlinkproject.vercel.app");
+    const currentOrigin = window.location.origin || "https://theredlinkproject.vercel.app";
+    setAppUrl(currentOrigin);
 
     // Register Service Worker automatically on load
     registerServiceWorker();
@@ -35,9 +36,22 @@ export default function InstallPWA() {
       setIsDesktop(true);
     }
 
+    // Auto-open install prompt if user arrived via scanned install QR code
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get('install') === 'true' && isMobileDevice) {
+      setIsOpen(true);
+    }
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      // Auto trigger prompt if arrived via QR code scan
+      if (searchParams.get('install') === 'true' && isMobileDevice) {
+        setIsOpen(true);
+        setTimeout(() => {
+          e.prompt();
+        }, 500);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -69,7 +83,8 @@ export default function InstallPWA() {
 
   if (isInstalled || !isOpen) return null;
 
-  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(appUrl)}&color=000000&bgcolor=ffffff`;
+  const installUrl = `${appUrl}?install=true`;
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(installUrl)}&color=000000&bgcolor=ffffff`;
 
   return (
     <div style={{
@@ -127,7 +142,7 @@ export default function InstallPWA() {
               📱 Scan with Phone Camera
             </p>
             <p style={{ fontSize: '0.9rem', color: '#9ca3af', marginBottom: '1.5rem', maxWidth: '340px' }}>
-              Scan this QR code to open Project Red-Link on your mobile phone and receive emergency push alerts.
+              Scanning this QR code immediately triggers the 1-tap app installation prompt on your mobile phone.
             </p>
 
             {deferredPrompt && (
@@ -146,7 +161,7 @@ export default function InstallPWA() {
         ) : isIos ? (
           <div style={{ backgroundColor: '#1f2937', padding: '1.5rem', borderRadius: '12px', border: '1px solid #374151' }}>
             <p style={{ fontSize: '1.1rem', marginBottom: '1rem', fontWeight: 'bold' }}>
-              To receive live emergency alerts on iOS:
+              To install app & receive alerts on iOS:
             </p>
             <ol style={{ textAlign: 'left', fontSize: '1rem', lineHeight: '1.8', margin: '0 auto', display: 'inline-block' }}>
               <li>Tap the <strong>Share</strong> button in Safari.</li>
@@ -157,7 +172,7 @@ export default function InstallPWA() {
         ) : (
           <div>
             <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem', color: '#e5e7eb' }}>
-              Install Project Red-Link on your device for instant life-saving notifications.
+              Install Project Red-Link on your phone to receive instant emergency push notifications.
             </p>
             {deferredPrompt ? (
               <button 
@@ -168,11 +183,11 @@ export default function InstallPWA() {
                   border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' 
                 }}
               >
-                Install Application
+                Install Application Now
               </button>
             ) : (
               <p style={{ fontSize: '0.95rem', color: '#9ca3af' }}>
-                Open your browser menu (⋮) and tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.
+                Open your mobile browser menu (⋮) and tap <strong>"Add to Home Screen"</strong> or <strong>"Install App"</strong>.
               </p>
             )}
           </div>
