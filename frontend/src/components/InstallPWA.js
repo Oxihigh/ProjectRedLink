@@ -149,12 +149,12 @@ export default function InstallPWA() {
               <button 
                 onClick={handleInstallClick}
                 style={{ 
-                  width: '100%', padding: '0.8rem', fontSize: '1rem',
+                  width: '100%', padding: '0.86rem', fontSize: '1.1rem',
                   backgroundColor: 'var(--red, #dc2626)', color: 'white', border: 'none',
                   borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' 
                 }}
               >
-                Or Install Desktop App on Laptop
+                Install Application
               </button>
             )}
           </div>
