@@ -79,8 +79,12 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
                 if not donor.get("fcm_token"):
                     continue
                 if donor.get("last_donation_date"):
-                    last_donation = datetime.fromisoformat(donor["last_donation_date"]).date()
-                    if (today - last_donation).days >= 90:
+                    try:
+                        d_str = str(donor["last_donation_date"]).split('T')[0]
+                        last_donation = datetime.strptime(d_str, "%Y-%m-%d").date()
+                        if (today - last_donation).days >= 90:
+                            eligible_donors.append(donor)
+                    except Exception:
                         eligible_donors.append(donor)
                 else:
                     eligible_donors.append(donor)

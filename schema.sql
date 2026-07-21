@@ -55,6 +55,7 @@ CREATE POLICY "Users can update their own profile" ON public.users
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS is_suspicious BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.users ADD COLUMN IF NOT EXISTS lifesaver_points INTEGER DEFAULT 0;
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS email TEXT;
 
 -- 2. Contact Logs Table (Rate Limiting)
 CREATE TABLE public.contact_logs (

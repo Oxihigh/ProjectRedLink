@@ -9,6 +9,15 @@ export const metadata = {
   title: "PROJECT RED LINK",
   description: "detect · direct · protect",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Project Red-Link",
+  },
 };
 
 export default function RootLayout({ children }) {

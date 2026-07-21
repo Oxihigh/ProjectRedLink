@@ -17,6 +17,11 @@ try:
 except ImportError:
     from fcm_alert import broadcast_fcm_alert
 
+try:
+    from api.email_service import send_donation_certificate
+except ImportError:
+    from email_service import send_donation_certificate
+
 import base64
 import json
 import math
@@ -43,10 +48,13 @@ def encode_image(file_bytes):
 
 app = FastAPI(title="Project RedLink - Phase 3 (Complete)")
 
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For MVP, allow all
-    allow_credentials=True,
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
+    allow_credentials=True if "*" not in allowed_origins else False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -134,6 +142,9 @@ def register_profile(profile: UserRegistrationRequest, current_user = Depends(ge
             "phone_number": profile.phone_number,
             "last_donation_date": profile.last_donation_date.isoformat() if profile.last_donation_date else None,
         }
+        if getattr(current_user, "email", None):
+            user_data["email"] = current_user.email
+
         wkt = get_lat_lon_wkt(profile.pincode)
         if wkt:
             user_data["location"] = wkt
@@ -158,6 +169,9 @@ def update_profile(profile_update: UserUpdateRequest, current_user = Depends(get
         if wkt:
             update_data["location"] = wkt
         
+    if getattr(current_user, "email", None):
+        update_data["email"] = current_user.email
+
     try:
         response = supabase.table("users").update(update_data).eq("id", current_user.id).execute()
         if not response.data:
@@ -188,8 +202,12 @@ def search_donors(pincode: int, blood_group: str):
         today = date.today()
         for donor in donors:
             if donor.get("last_donation_date"):
-                last_donation = date.fromisoformat(donor["last_donation_date"])
-                if (today - last_donation).days >= 90:
+                try:
+                    d_str = str(donor["last_donation_date"]).split('T')[0]
+                    last_donation = date.fromisoformat(d_str)
+                    if (today - last_donation).days >= 90:
+                        eligible_donors.append(donor)
+                except Exception:
                     eligible_donors.append(donor)
             else:
                 eligible_donors.append(donor)
@@ -246,7 +264,7 @@ def requester_confirm_donation(payload: DonationConfirmRequest, request: Request
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/donation/donor-confirm")
-def donor_confirm_donation(payload: DonationConfirmRequest, current_user = Depends(get_current_user)):
+def donor_confirm_donation(payload: DonationConfirmRequest, background_tasks: BackgroundTasks, current_user = Depends(get_current_user)):
     try:
         requester_id = payload.other_user_id
         existing = supabase.table("donations").select("*").eq("requester_id", requester_id).eq("donor_id", current_user.id).order("created_at", desc=True).limit(1).execute()
@@ -256,10 +274,27 @@ def donor_confirm_donation(payload: DonationConfirmRequest, current_user = Depen
         supabase.table("donations").update({"donor_confirmed": True}).eq("id", donation_record["id"]).execute()
         if donation_record["requester_confirmed"]:
             today = date.today().isoformat()
-            donor_res = supabase.table("users").select("lifesaver_points").eq("id", current_user.id).execute()
-            current_points = donor_res.data[0].get("lifesaver_points", 0)
+            donor_res = supabase.table("users").select("name, blood_group, lifesaver_points, email").eq("id", current_user.id).execute()
+            donor_data = donor_res.data[0] if (donor_res and donor_res.data) else {}
+            current_points = donor_data.get("lifesaver_points", 0)
             supabase.table("users").update({"last_donation_date": today, "lifesaver_points": current_points + 10}).eq("id", current_user.id).execute()
-            return {"message": "Handshake complete! Cooldown reset and points awarded."}
+            
+            donor_email = getattr(current_user, "email", None) or donor_data.get("email")
+            donor_name = donor_data.get("name", "Life Saver")
+            blood_group = donor_data.get("blood_group", "O+")
+            
+            if donor_email:
+                background_tasks.add_task(
+                    send_donation_certificate,
+                    donor_name=donor_name,
+                    donor_email=donor_email,
+                    blood_group=blood_group,
+                    hospital_name="Emergency Response Center",
+                    donation_date=datetime.now().strftime("%B %d, %Y"),
+                    lifesaver_points=10
+                )
+
+            return {"message": "Handshake complete! Cooldown reset, points awarded, and certificate emailed."}
         return {"message": "Donation confirmed by donor. Waiting for requester confirmation."}
     except HTTPException:
         raise
@@ -282,8 +317,14 @@ async def create_blood_request(
 ):
     ip_address = request.client.host
     try:
-        # 1. Read and encode the uploaded document
+        # 1. Validate file size and content type (Max 5MB, images/pdf)
+        if supporting_document.content_type not in ["image/jpeg", "image/png", "image/webp"]:
+            raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
+
         file_bytes = await supporting_document.read()
+        if len(file_bytes) > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File size exceeds maximum limit of 5MB.")
+
         base64_image = encode_image(file_bytes)
         
         # 2. Verify document using Groq Llama-3.2-11b-vision-preview
@@ -420,7 +461,7 @@ def check_request_status(success_token: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/blood-requests/success/{success_token}")
-def confirm_success(success_token: str):
+def confirm_success(success_token: str, background_tasks: BackgroundTasks):
     try:
         # Find the request
         req_res = supabase.table("blood_requests").select("*").eq("success_token", success_token).execute()
@@ -438,14 +479,39 @@ def confirm_success(success_token: str):
             
             # Award points & cooldown
             today = date.today().isoformat()
-            donor_user_res = supabase.table("users").select("lifesaver_points").eq("id", donor_id).execute()
-            current_points = donor_user_res.data[0].get("lifesaver_points", 0)
+            donor_user_res = supabase.table("users").select("name, blood_group, lifesaver_points, email").eq("id", donor_id).execute()
+            donor_data = donor_user_res.data[0] if (donor_user_res and donor_user_res.data) else {}
+            current_points = donor_data.get("lifesaver_points", 0)
             supabase.table("users").update({"last_donation_date": today, "lifesaver_points": current_points + 10}).eq("id", donor_id).execute()
+            
+            donor_email = donor_data.get("email")
+            if not donor_email:
+                try:
+                    auth_user = supabase.auth.admin.get_user_by_id(donor_id)
+                    if auth_user and hasattr(auth_user, 'user') and auth_user.user:
+                        donor_email = auth_user.user.email
+                except Exception as auth_err:
+                    print(f"Auth lookup warning: {auth_err}")
+
+            donor_name = donor_data.get("name", "Life Saver")
+            blood_group = donor_data.get("blood_group", "O+")
+            hospital_name = request_data.get("hospital_name", "Emergency Medical Response")
+            
+            if donor_email:
+                background_tasks.add_task(
+                    send_donation_certificate,
+                    donor_name=donor_name,
+                    donor_email=donor_email,
+                    blood_group=blood_group,
+                    hospital_name=hospital_name,
+                    donation_date=datetime.now().strftime("%B %d, %Y"),
+                    lifesaver_points=10
+                )
             
         # Archive/Delete the request
         supabase.table("blood_requests").delete().eq("id", request_data["id"]).execute()
         
-        return {"message": "Success recorded! Points awarded to the hero and request closed."}
+        return {"message": "Success recorded! Points awarded to the hero, certificate emailed, and request closed."}
     except HTTPException:
         raise
     except Exception as e:
@@ -476,8 +542,14 @@ def get_heatmap():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.delete("/cron/cleanup")
-def cleanup_old_requests():
+def cleanup_old_requests(request: Request):
     """Vercel cron endpoint: deletes blood requests older than 24 hours."""
+    cron_secret = os.getenv("CRON_SECRET")
+    if cron_secret:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or auth_header != f"Bearer {cron_secret}":
+            raise HTTPException(status_code=401, detail="Unauthorized cron invocation.")
+
     try:
         yesterday = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
         res = supabase.table("blood_requests").delete().lt("created_at", yesterday).execute()
@@ -486,8 +558,14 @@ def cleanup_old_requests():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/cron/ping-supabase")
-def ping_supabase():
+def ping_supabase(request: Request):
     """Vercel cron endpoint: pings Supabase to prevent the free tier project from pausing due to inactivity."""
+    cron_secret = os.getenv("CRON_SECRET")
+    if cron_secret:
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or auth_header != f"Bearer {cron_secret}":
+            raise HTTPException(status_code=401, detail="Unauthorized cron invocation.")
+
     try:
         # A simple query that is fast but registers as activity
         res = supabase.table("users").select("id").limit(1).execute()
@@ -503,18 +581,23 @@ def check_eligibility(current_user = Depends(get_current_user)):
         if not user_res.data or user_res.data[0]["role"] != "donor":
             return {"eligible": False, "message": "Not a donor."}
             
-        last_donation = user_res.data[0].get("last_donation_date")
-        if not last_donation:
+        last_donation_raw = user_res.data[0].get("last_donation_date")
+        if not last_donation_raw:
             return {"eligible": True, "message": "You're a Hero (First time donor)"}
             
-        days_since = (date.today() - date.fromisoformat(last_donation)).days
-        if days_since < 0:
-            days_since = 0 # Handle timezone differences (e.g., IST vs UTC)
-            
-        if days_since >= 90:
-            return {"eligible": True, "message": "You're a Hero Again! You are eligible to donate."}
-        else:
-            return {"eligible": False, "message": f"Not eligible yet. Please wait {90 - days_since} more days."}
+        try:
+            d_str = str(last_donation_raw).split('T')[0]
+            last_donation = date.fromisoformat(d_str)
+            days_since = (date.today() - last_donation).days
+            if days_since < 0:
+                days_since = 0 # Handle timezone differences (e.g., IST vs UTC)
+                
+            if days_since >= 90:
+                return {"eligible": True, "message": "You're a Hero Again! You are eligible to donate."}
+            else:
+                return {"eligible": False, "message": f"Not eligible yet. Please wait {90 - days_since} more days."}
+        except Exception:
+            return {"eligible": True, "message": "You're a Hero! You are eligible to donate."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { registerServiceWorker } from "../utils/firebase";
 
 export default function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -10,6 +11,9 @@ export default function InstallPWA() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    // Register Service Worker automatically on load for PWA installability & push readiness
+    registerServiceWorker();
 
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
       setIsInstalled(true);
