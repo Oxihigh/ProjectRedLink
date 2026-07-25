@@ -27,7 +27,7 @@ export default function Home() {
   const handleSession = async (session) => {
     setSession(session);
     if (session) {
-      const { data, error } = await supabase.from('users').select('*').eq('id', session.user.id).single();
+      const { data, error } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle();
       if (error || !data) {
         setViewState('register');
       } else {

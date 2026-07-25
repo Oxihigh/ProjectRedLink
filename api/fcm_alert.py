@@ -5,10 +5,20 @@ from datetime import datetime, timezone, timedelta
 from supabase import create_client, Client
 import firebase_admin
 from firebase_admin import credentials, messaging
+os.environ["PGEOCODE_DATA_DIR"] = "/tmp/pgeocode"
 import pgeocode
 import math
 
-nomi = pgeocode.Nominatim('in')
+_nomi = None
+
+def get_nomi():
+    global _nomi
+    if _nomi is None:
+        try:
+            _nomi = pgeocode.Nominatim('in')
+        except Exception as e:
+            logger.error(f"Failed to initialize pgeocode: {e}")
+    return _nomi
 
 logger = logging.getLogger(__name__)
 
@@ -48,8 +58,9 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
     try:
         ninety_days_ago = (datetime.now(timezone.utc) - timedelta(days=90)).isoformat()
         
-        location = nomi.query_postal_code(str(pincode))
-        lat, lon = location.latitude, location.longitude
+        n = get_nomi()
+        location = n.query_postal_code(str(pincode)) if n else None
+        lat, lon = (location.latitude, location.longitude) if location else (None, None)
         
         eligible_donors = []
         

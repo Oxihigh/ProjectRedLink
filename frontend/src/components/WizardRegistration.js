@@ -94,7 +94,7 @@ export default function WizardRegistration({ onComplete }) {
       });
       setIsSuccess(true);
     } catch (err) {
-      alert(err.message);
+      setAlertMsg(err.message || "Registration failed. Please try again.");
     }
   };
 

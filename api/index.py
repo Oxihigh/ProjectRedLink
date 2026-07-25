@@ -25,17 +25,30 @@ except ImportError:
 import base64
 import json
 import math
-from groq import Groq
 import pgeocode
+from groq import Groq
 
-nomi = pgeocode.Nominatim('in')
+os.environ["PGEOCODE_DATA_DIR"] = "/tmp/pgeocode"
+
+_nomi = None
+
+def get_nomi():
+    global _nomi
+    if _nomi is None:
+        try:
+            _nomi = pgeocode.Nominatim('in')
+        except Exception as e:
+            print(f"Geocoding init error: {e}")
+    return _nomi
 
 def get_lat_lon_wkt(pincode: int):
     try:
-        location = nomi.query_postal_code(str(pincode))
-        lat, lon = location.latitude, location.longitude
-        if lat is not None and lon is not None and not math.isnan(lat) and not math.isnan(lon):
-            return f"POINT({lon} {lat})"
+        n = get_nomi()
+        if n is not None:
+            location = n.query_postal_code(str(pincode))
+            lat, lon = location.latitude, location.longitude
+            if lat is not None and lon is not None and not math.isnan(lat) and not math.isnan(lon):
+                return f"POINT({lon} {lat})"
     except Exception as e:
         print(f"Geocoding error: {e}")
     return None

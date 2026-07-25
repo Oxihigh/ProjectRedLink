@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
 
 export async function apiCall(endpoint, method = 'GET', body = null) {
   const headers = {};
@@ -22,8 +22,16 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
     }
   }
 
-  const res = await fetch(`${API_URL}${endpoint}`, options);
-  const data = await res.json();
+  const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+  let res;
+  try {
+    res = await fetch(`${API_URL}${formattedEndpoint}`, options);
+  } catch (netErr) {
+    throw new Error(`Failed to connect to backend API (${API_URL}). Please verify backend server status.`);
+  }
+
+  const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     let errMsg = 'API Error';
     if (data.detail) {
@@ -34,6 +42,8 @@ export async function apiCall(endpoint, method = 'GET', body = null) {
       } else {
         errMsg = JSON.stringify(data.detail);
       }
+    } else if (res.statusText) {
+      errMsg = `Server error ${res.status}: ${res.statusText}`;
     }
     throw new Error(errMsg);
   }
