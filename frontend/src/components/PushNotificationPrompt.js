@@ -7,6 +7,19 @@ export default function PushNotificationPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState("default");
 
+  const setupMessageListener = () => {
+    onMessageListener((payload) => {
+      console.log("Foreground message received:", payload);
+      if (payload.notification) {
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: payload.notification.image || '/icon.png',
+          data: payload.data
+        });
+      }
+    });
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPermissionStatus(Notification.permission);
@@ -20,9 +33,7 @@ export default function PushNotificationPrompt() {
           }
         });
         
-        onMessageListener().then(payload => {
-          console.log("Foreground message received:", payload);
-        }).catch(err => console.log('failed: ', err));
+        setupMessageListener();
       }
     }
   }, []);
@@ -32,6 +43,8 @@ export default function PushNotificationPrompt() {
     if (token) {
       setShowPrompt(false);
       setPermissionStatus("granted");
+      
+      setupMessageListener();
       
       // Send token to backend
       try {

@@ -64,11 +64,10 @@ export const requestNotificationPermission = async () => {
   return null;
 };
 
-export const onMessageListener = () =>
-  new Promise((resolve) => {
-    if (messaging) {
-      onMessage(messaging, (payload) => {
-        resolve(payload);
-      });
-    }
-  });
+export const onMessageListener = (callback) => {
+  if (messaging) {
+    onMessage(messaging, (payload) => {
+      callback(payload);
+    });
+  }
+};
