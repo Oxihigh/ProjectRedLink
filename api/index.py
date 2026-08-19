@@ -325,59 +325,61 @@ async def create_blood_request(
     pincode: int = Form(...),
     hospital_name: str = Form(...),
     phone_number: str = Form(...),
-    location_details: Optional[str] = Form(None),
-    supporting_document: UploadFile = File(...)
+    location_details: Optional[str] = Form(None)
+    # supporting_document: UploadFile = File(...)
 ):
     ip_address = request.client.host
     try:
+        # --- AI PRESCRIPTION VALIDATION (Temporarily Disabled) ---
         # 1. Validate file size and content type (Max 5MB, images/pdf)
-        if supporting_document.content_type not in ["image/jpeg", "image/png", "image/webp"]:
-            raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
-
-        file_bytes = await supporting_document.read()
-        if len(file_bytes) > 5 * 1024 * 1024:
-            raise HTTPException(status_code=400, detail="File size exceeds maximum limit of 5MB.")
-
-        base64_image = encode_image(file_bytes)
-        
-        # 2. Verify document using Groq Llama-3.2-11b-vision-preview
-        try:
-            chat_completion = groq_client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": "Analyze this image. Is it a legitimate hospital document, admission slip, or doctor's prescription explicitly requesting a blood transfusion? Reply strictly with a JSON object: {\"is_legit\": true/false, \"reason\": \"string explanation\"}. Do not output any markdown or other text."},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{base64_image}",
-                                },
-                            },
-                        ],
-                    }
-                ],
-                model="llama-3.2-90b-vision-preview",
-                temperature=0.0
-            )
-            
-            response_text = chat_completion.choices[0].message.content.strip()
-            # Clean up potential markdown formatting
-            if response_text.startswith("```json"):
-                response_text = response_text[7:-3].strip()
-            elif response_text.startswith("```"):
-                response_text = response_text[3:-3].strip()
-                
-            ai_response = json.loads(response_text)
-            
-            if not ai_response.get("is_legit", False):
-                raise HTTPException(status_code=400, detail=f"AI Verification Failed: {ai_response.get('reason', 'Document rejected.')}")
-                
-        except HTTPException:
-            raise
-        except Exception as e:
-            print(f"Groq API Error: {str(e)}")
-            raise HTTPException(status_code=500, detail="Failed to verify document with AI.")
+        # if supporting_document.content_type not in ["image/jpeg", "image/png", "image/webp"]:
+        #     raise HTTPException(status_code=400, detail="Invalid file type. Only JPEG, PNG, and WebP images are allowed.")
+        #
+        # file_bytes = await supporting_document.read()
+        # if len(file_bytes) > 5 * 1024 * 1024:
+        #     raise HTTPException(status_code=400, detail="File size exceeds maximum limit of 5MB.")
+        #
+        # base64_image = encode_image(file_bytes)
+        #
+        # # 2. Verify document using Groq Vision Model
+        # try:
+        #     chat_completion = groq_client.chat.completions.create(
+        #         messages=[
+        #             {
+        #                 "role": "user",
+        #                 "content": [
+        #                     {"type": "text", "text": "Analyze this image. Is it a legitimate hospital document, admission slip, or doctor's prescription explicitly requesting a blood transfusion? Reply strictly with a JSON object: {\"is_legit\": true/false, \"reason\": \"string explanation\"}. Do not output any markdown or other text."},
+        #                     {
+        #                         "type": "image_url",
+        #                         "image_url": {
+        #                             "url": f"data:image/jpeg;base64,{base64_image}",
+        #                         },
+        #                     },
+        #                 ],
+        #             }
+        #         ],
+        #         model="llama-3.2-90b-vision-preview",
+        #         temperature=0.0
+        #     )
+        #     
+        #     response_text = chat_completion.choices[0].message.content.strip()
+        #     # Clean up potential markdown formatting
+        #     if response_text.startswith("```json"):
+        #         response_text = response_text[7:-3].strip()
+        #     elif response_text.startswith("```"):
+        #         response_text = response_text[3:-3].strip()
+        #         
+        #     ai_response = json.loads(response_text)
+        #     
+        #     if not ai_response.get("is_legit", False):
+        #         raise HTTPException(status_code=400, detail=f"AI Verification Failed: {ai_response.get('reason', 'Document rejected.')}")
+        #         
+        # except HTTPException:
+        #     raise
+        # except Exception as e:
+        #     print(f"Groq API Error: {str(e)}")
+        #     raise HTTPException(status_code=500, detail="Failed to verify document with AI.")
+        # ---------------------------------------------------------
 
         # 3. Document is verified, save to database
         wkt = get_lat_lon_wkt(pincode)

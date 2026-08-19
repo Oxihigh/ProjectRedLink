@@ -13,8 +13,8 @@ export function PublicRequestForm({ onClose }) {
 
   const [successToken, setSuccessToken] = useState(null);
   const [volunteerDetails, setVolunteerDetails] = useState(null);
-  const [documentFile, setDocumentFile] = useState(null);
-  const [isVerifying, setIsVerifying] = useState(false);
+  // const [documentFile, setDocumentFile] = useState(null);
+  // const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     if (!successToken || volunteerDetails) return;
@@ -61,9 +61,9 @@ export function PublicRequestForm({ onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!documentFile) return alert('Please upload a supporting medical document.');
+    // if (!documentFile) return alert('Please upload a supporting medical document.');
     
-    setIsVerifying(true);
+    // setIsVerifying(true);
     try {
       const payload = new FormData();
       payload.append('blood_group', formData.blood_group);
@@ -71,15 +71,16 @@ export function PublicRequestForm({ onClose }) {
       payload.append('hospital_name', formData.hospital_name);
       payload.append('phone_number', formData.phone_number);
       if (formData.location_details) payload.append('location_details', formData.location_details);
-      payload.append('supporting_document', documentFile);
+      // payload.append('supporting_document', documentFile);
 
       const res = await apiCall('/blood-requests', 'POST', payload);
       setSuccessToken(res.success_token);
     } catch (err) {
       alert(err.message);
-    } finally {
-      setIsVerifying(false);
-    }
+    } 
+    // finally {
+    //   setIsVerifying(false);
+    // }
   };
 
   if (successToken) {
@@ -148,16 +149,22 @@ export function PublicRequestForm({ onClose }) {
           <label>Location Details (Optional)</label>
           <input type="text" placeholder="e.g. Ward 4, Room 102" value={formData.location_details} onChange={e => setFormData({ ...formData, location_details: e.target.value })} />
         </div>
-        <div className="input-group full-width">
+        {/* <div className="input-group full-width">
           <label>Supporting Document (Prescription / Admission Slip)</label>
           <input type="file" accept="image/*" required onChange={e => setDocumentFile(e.target.files[0])} />
           <small className="text-gray mt-1">Our AI instantly verifies documents to prevent spam.</small>
-        </div>
+        </div> */}
         <div className="flex-align" style={{ gap: '1rem', marginTop: '1.5rem', gridColumn: '1 / -1' }}>
-          <button type="submit" className="btn btn-red full-width" disabled={isVerifying}>
+          {/* <button type="submit" className="btn btn-red full-width" disabled={isVerifying}>
             {isVerifying ? 'Verifying...' : 'Broadcast Now'}
           </button>
           <button type="button" className="btn btn-outline full-width" onClick={onClose} disabled={isVerifying}>
+            Cancel
+          </button> */}
+          <button type="submit" className="btn btn-red full-width">
+            Broadcast Now
+          </button>
+          <button type="button" className="btn btn-outline full-width" onClick={onClose}>
             Cancel
           </button>
         </div>
