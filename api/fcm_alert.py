@@ -127,7 +127,7 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
         )
 
         # 3. Send the notifications
-        response = messaging.send_multicast(message)
+        response = messaging.send_each_for_multicast(message)
         logger.info(f"{response.success_count} messages were sent successfully.")
         if response.failure_count > 0:
             logger.warning(f"{response.failure_count} messages failed to send.")
