@@ -1,23 +1,17 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// Read Firebase config from URL query parameters during registration
-const urlParams = new URLSearchParams(location.search);
+// Hardcoded Firebase config for reliable background initialization
 const firebaseConfig = {
-  apiKey: urlParams.get('apiKey'),
-  authDomain: urlParams.get('authDomain'),
-  projectId: urlParams.get('projectId'),
-  storageBucket: urlParams.get('storageBucket'),
-  messagingSenderId: urlParams.get('messagingSenderId'),
-  appId: urlParams.get('appId')
+  apiKey: "AIzaSyCGL9XSRdWu9ZWriLxFw2wTpU2bPRuHMGM",
+  authDomain: "redlinkproject.firebaseapp.com",
+  projectId: "redlinkproject",
+  storageBucket: "redlinkproject.firebasestorage.app",
+  messagingSenderId: "867840543171",
+  appId: "1:867840543171:web:4b7295f5c8d79ea52bd576"
 };
 
-// Only initialize if we have the config (to prevent errors during standalone SW load)
-if (firebaseConfig.apiKey) {
-  firebase.initializeApp(firebaseConfig);
-} else {
-  console.warn("Firebase SW: Missing config parameters in URL");
-}
+firebase.initializeApp(firebaseConfig);
 
 const messaging = firebase.messaging();
 
@@ -31,7 +25,7 @@ messaging.onBackgroundMessage((payload) => {
     data: payload.data
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
 self.addEventListener('notificationclick', (event) => {
