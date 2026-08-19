@@ -83,9 +83,13 @@ CREATE POLICY "Users can insert reports" ON public.reports FOR INSERT WITH CHECK
 CREATE TABLE public.donations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     donor_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-    blood_group TEXT NOT NULL,
-    hospital_name TEXT NOT NULL,
-    donated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    requester_id TEXT NOT NULL,
+    requester_confirmed BOOLEAN DEFAULT FALSE,
+    donor_confirmed BOOLEAN DEFAULT FALSE,
+    blood_group TEXT,
+    hospital_name TEXT,
+    donated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
 
