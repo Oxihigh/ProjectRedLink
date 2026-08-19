@@ -60,7 +60,7 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
         
         n = get_nomi()
         location = n.query_postal_code(str(pincode)) if n else None
-        lat, lon = (location.latitude, location.longitude) if location else (None, None)
+        lat, lon = (location.latitude, location.longitude) if location is not None else (None, None)
         
         eligible_donors = []
         
