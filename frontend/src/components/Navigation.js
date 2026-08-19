@@ -38,8 +38,8 @@ export default function Navigation({ session, userProfile, onShowPublicRequest }
           ) : (
             <div className="flex-align">
               <div className="avatar-circle">{session.user.email?.charAt(0).toUpperCase()}</div>
-              <span className="text-sm text-gray mr-4">{session.user.email}</span>
-              <button onClick={handleLogout} className="btn btn-ghost text-sm">Log Out</button>
+              <span className="text-sm text-gray mr-4 nav-email">{session.user.email}</span>
+              <button onClick={handleLogout} className="btn btn-ghost text-sm nav-logout">Log Out</button>
             </div>
           )}
         </div>
