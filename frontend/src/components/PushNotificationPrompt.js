@@ -11,11 +11,22 @@ export default function PushNotificationPrompt() {
     onMessageListener((payload) => {
       console.log("Foreground message received:", payload);
       if (payload.notification) {
-        new Notification(payload.notification.title, {
-          body: payload.notification.body,
-          icon: payload.notification.image || '/icon.png',
-          data: payload.data
-        });
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(payload.notification.title, {
+              body: payload.notification.body,
+              icon: payload.notification.image || '/icon.png',
+              data: payload.data
+            });
+          });
+        } else {
+          // Fallback for browsers that support Notification constructor
+          new Notification(payload.notification.title, {
+            body: payload.notification.body,
+            icon: payload.notification.image || '/icon.png',
+            data: payload.data
+          });
+        }
       }
     });
   };
