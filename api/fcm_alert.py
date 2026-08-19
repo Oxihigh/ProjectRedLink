@@ -121,7 +121,7 @@ async def broadcast_fcm_alert(request_id: str, pincode: int, blood_group: str):
             ),
             data={
                 "request_id": request_id,
-                "url": f"/requests/{request_id}" # Click action
+                "url": "/" # Click action to live feed
             },
             tokens=tokens,
         )
