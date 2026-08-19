@@ -382,6 +382,9 @@ async def create_blood_request(
         # ---------------------------------------------------------
 
         # 3. Document is verified, save to database
+        if location_details:
+            hospital_name = f"{hospital_name} (Loc: {location_details})"
+
         wkt = get_lat_lon_wkt(pincode)
         success_token = uuid.uuid4().hex[:6].upper()
         res = supabase.table("blood_requests").insert({
@@ -389,7 +392,6 @@ async def create_blood_request(
             "blood_group": blood_group,
             "pincode": pincode,
             "hospital_name": hospital_name,
-            "location_details": location_details,
             "phone_number": phone_number,
             "success_token": success_token,
             "location": wkt
