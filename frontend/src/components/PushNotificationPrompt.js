@@ -73,14 +73,15 @@ export default function PushNotificationPrompt() {
   if (!showPrompt) return null;
 
   return (
-    <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6 flex justify-between items-center glass-panel">
+    <div className="glass-panel border-red flex-align push-prompt mb-6" style={{ justifyContent: 'space-between' }}>
       <div>
         <strong className="font-bold block text-dark">Enable Emergency Alerts</strong>
-        <span className="block sm:inline text-gray text-sm">Allow notifications so we can ping you instantly when someone nearby needs blood.</span>
+        <span className="block text-gray text-sm mt-1">Allow notifications so we can ping you instantly when someone nearby needs blood.</span>
       </div>
       <button 
         onClick={handleEnable} 
-        className="btn btn-red text-sm whitespace-nowrap ml-4"
+        className="btn btn-red text-sm"
+        style={{ marginLeft: '1rem', whiteSpace: 'nowrap' }}
       >
         Turn On Alerts
       </button>

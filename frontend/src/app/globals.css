@@ -392,16 +392,36 @@ select:focus {
 }
 
 @media(max-width: 768px) {
-  .grid-layout {
+  .features-grid, .grid-layout, .form-grid {
     grid-template-columns: 1fr;
   }
 
-  .form-grid {
+  .main-layout {
+    padding: 6rem 1.5rem 3rem;
+  }
+
+  .action-grid {
     grid-template-columns: 1fr;
   }
 
   .hero-title {
-    font-size: 3.5rem;
+    font-size: 3rem;
+  }
+
+  .btn {
+    padding: 0.8rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .push-prompt {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .push-prompt button {
+    margin-left: 0 !important;
+    width: 100%;
   }
 }
 
