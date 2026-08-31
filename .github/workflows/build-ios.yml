@@ -38,6 +38,13 @@ jobs:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://project-red-link-back.vercel.app' }}
         run: npm run build
 
+      - name: Ensure GoogleService-Info.plist is in iOS project
+        run: |
+          mkdir -p frontend/ios/App/App
+          if [ -f "GoogleService-Info.plist" ]; then
+            cp GoogleService-Info.plist frontend/ios/App/App/GoogleService-Info.plist
+          fi
+
       - name: Sync Capacitor iOS
         working-directory: frontend
         run: npx cap sync ios
