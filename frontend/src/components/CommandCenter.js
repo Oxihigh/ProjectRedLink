@@ -26,6 +26,7 @@ export default function CommandCenter({ userProfile }) {
         setEligibility(res);
         
         if (res.eligible) {
+          // Fetch initial active requests for their pincode and blood group
           supabase.from('blood_requests')
             .select('*')
             .order('created_at', { ascending: false })
@@ -33,6 +34,7 @@ export default function CommandCenter({ userProfile }) {
               if (data) setLiveFeed(data);
             });
 
+          // Donor realtime feed
           channel = supabase.channel(`public:blood_requests:${Date.now()}`)
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'blood_requests' }, payload => {
               setLiveFeed(prev => [payload.new, ...prev]);
@@ -109,30 +111,20 @@ export default function CommandCenter({ userProfile }) {
   };
 
   return (
-    <div className="w-full">
+    <div className="app-container mt-10">
       <PushNotificationPrompt />
-      
       <div className="app-tabs">
-        <button className={`tab-btn ${activeTab === 'tab-home' ? 'active' : ''}`} onClick={() => setActiveTab('tab-home')}>
-          Overview
-        </button>
-        <button className={`tab-btn ${activeTab === 'tab-network' ? 'active' : ''}`} onClick={() => setActiveTab('tab-network')}>
-          {userProfile.role === 'donor' ? 'Emergency Feed' : 'Find Donors'}
-        </button>
-        <button className={`tab-btn ${activeTab === 'tab-edit-profile' ? 'active' : ''}`} onClick={() => setActiveTab('tab-edit-profile')}>
-          My Profile
-        </button>
+        <button className={`tab-btn ${activeTab === 'tab-home' ? 'active' : ''}`} onClick={() => setActiveTab('tab-home')}>Home</button>
+        <button className={`tab-btn ${activeTab === 'tab-network' ? 'active' : ''}`} onClick={() => setActiveTab('tab-network')}>Network Actions</button>
+        <button className={`tab-btn ${activeTab === 'tab-edit-profile' ? 'active' : ''}`} onClick={() => setActiveTab('tab-edit-profile')}>Edit Profile</button>
       </div>
 
       {activeTab === 'tab-home' && (
         <section className="tab-content">
           <div className="overview-header">
-            <h2>Welcome, <span className="text-red">{userProfile.name}</span></h2>
-            <p className="text-gray text-sm">
-              {userProfile.role === 'donor' ? '🩸 Emergency Donor Command Center' : '🏥 Medical Requester Command Center'}
-            </p>
+            <h2 className="text-dark">Welcome back, <span className="text-red">{userProfile.name}</span></h2>
+            <p className="text-gray text-lg font-bold">{userProfile.role === 'donor' ? 'Donor Command Center' : 'Requester Command Center'}</p>
           </div>
-          
           <div className="stats-grid">
             {userProfile.role === 'donor' && (
               <div className="stat-card">
@@ -141,9 +133,9 @@ export default function CommandCenter({ userProfile }) {
               </div>
             )}
             <div className="stat-card">
-              <span className="stat-label">Donor Availability</span>
+              <span className="stat-label">Medical Status</span>
               <span className={`stat-value text-xl mt-2 ${userProfile.role === 'requester' ? '' : (eligibility.eligible ? 'text-red font-bold' : 'text-gray')}`}>
-                {userProfile.role === 'donor' ? eligibility.message : 'Active Network Member'}
+                {userProfile.role === 'donor' ? eligibility.message : 'Active'}
               </span>
             </div>
           </div>
@@ -153,58 +145,33 @@ export default function CommandCenter({ userProfile }) {
       {activeTab === 'tab-network' && (
         <section className="tab-content">
           {userProfile.role === 'donor' ? (
-            <div className="glass-panel border-red relative">
-              <h3 className="text-xl font-bold mb-4 flex-align gap-2">
-                <span className="live-indicator"></span> Live Emergency Feed
+            <div className="glass-panel border-top-red relative overflow-hidden">
+              <h3 className="font-outfit text-xl font-bold mb-4 flex-align gap-2 text-dark">
+                <span className="live-indicator"></span> Live Feed
               </h3>
               
               {!eligibility.eligible && eligibility.message !== 'Checking...' ? (
-                <div style={{
-                  background: 'var(--surface-card)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '1.5rem',
-                  textAlign: 'center'
-                }}>
-                  <p className="font-bold text-lg text-white">Medical Cooldown Period</p>
-                  <p className="text-gray text-sm mt-1">{eligibility.message}</p>
-                  <p className="text-red text-xs font-bold mt-3">Emergency broadcasts are hidden to protect your health until you can safely donate again.</p>
+                <div className="bg-dark p-6 rounded text-center my-4" style={{ border: '1px solid var(--red)' }}>
+                  <p className="text-white text-lg font-bold">You are in a medical cooldown period.</p>
+                  <p className="text-gray mt-2">{eligibility.message}</p>
+                  <p className="text-red mt-4 text-sm font-bold">Emergency broadcasts are hidden to protect your health until you are eligible to safely donate again.</p>
                 </div>
               ) : (
                 <div className="feed-container">
                   {liveFeed.length === 0 ? (
-                    <p className="text-gray text-sm italic" style={{ padding: '1rem' }}>Listening for local emergency requests in your area...</p>
+                    <p className="text-gray text-sm italic">Listening for local emergencies...</p>
                   ) : (
                     liveFeed.map(req => (
-                      <div key={req.id} className="feed-item">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span style={{ 
-                            background: 'var(--red)', 
-                            color: 'white', 
-                            fontWeight: 800, 
-                            padding: '0.2rem 0.6rem', 
-                            fontSize: '0.75rem',
-                            borderRadius: '4px'
-                          }}>
-                            {req.blood_group} NEEDED
-                          </span>
-                          <span className="text-gray text-xs">{new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        <p className="text-sm font-bold text-white mb-1">🏥 {req.hospital_name}</p>
-                        <p className="text-xs text-gray mb-3">📍 {req.location_details || `Pincode: ${req.pincode}`}</p>
+                      <div key={req.id} className="feed-item glass-panel border-red mb-4 p-4">
+                        <h4 className="text-red font-bold text-lg mb-1">🚨 {req.blood_group} Blood Needed</h4>
+                        <p className="text-sm text-gray mb-1"><strong>Hospital:</strong> {req.hospital_name}</p>
+                        <p className="text-sm text-gray mb-4"><strong>Location:</strong> {req.location_details || 'N/A'}</p>
                         {!req.volunteeredPhone ? (
-                          <button className="btn btn-red w-full" onClick={() => volunteerForRequest(req.id)}>
-                            I Am Willing to Help
-                          </button>
+                          <button className="btn btn-red w-full" onClick={() => volunteerForRequest(req.id)}>I am Willing</button>
                         ) : (
-                          <div style={{
-                            background: 'var(--surface-elevated)',
-                            padding: '0.75rem',
-                            borderRadius: 'var(--radius-sm)',
-                            border: '1px solid var(--surface-border)'
-                          }}>
-                            <p className="text-xs text-gray mb-1">Requester Contact:</p>
-                            <p className="font-bold text-red">📞 {req.volunteeredPhone}</p>
+                          <div className="mt-4 p-3 bg-dark text-white rounded">
+                            <p className="mb-1 text-sm text-gray">Thank you, Hero!</p>
+                            <p className="font-bold">📞 {req.volunteeredPhone}</p>
                           </div>
                         )}
                       </div>
@@ -216,64 +183,37 @@ export default function CommandCenter({ userProfile }) {
           ) : (
             <div>
               <div className="glass-panel border-red">
-                <h3 className="text-xl mb-4">Search Local Donors</h3>
-                <form onSubmit={handleSearch} className="form-grid">
-                  <div className="input-group">
-                    <label>Blood Group</label>
-                    <select name="search-bg" required>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
-                    </select>
-                  </div>
-                  <div className="input-group">
-                    <label>Pincode</label>
-                    <input type="number" name="search-pincode" placeholder="e.g. 110001" required />
-                  </div>
-                  <div className="input-group full-width">
-                    <button type="submit" className="btn btn-red w-full">Search Nearby Donors</button>
-                  </div>
+                <h3 className="font-outfit text-xl mb-4 text-dark">Search Local Donors</h3>
+                <form onSubmit={handleSearch} className="flex-align gap-2">
+                  <select name="search-bg" required>
+                    {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                  </select>
+                  <input type="number" name="search-pincode" placeholder="Pincode" required />
+                  <button type="submit" className="btn btn-red">Search</button>
                 </form>
               </div>
 
               {searchResults && (
                 <div className="mb-8">
-                  <h3 className="text-xl mb-4">Available Donors Nearby</h3>
+                  <h3 className="font-outfit text-xl mb-4 text-dark">Network Results</h3>
                   <div className="results-grid">
                     {searchResults.length === 0 ? (
-                      <p className="text-gray text-sm">No registered donors found in this pincode currently.</p>
+                      <p className="text-gray">No eligible donors found.</p>
                     ) : (
                       searchResults.map(d => (
                         <div key={d.id} className="donor-card">
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <h4 className="font-bold text-white">{d.name}</h4>
-                            <span style={{ 
-                              background: 'rgba(239, 68, 68, 0.15)', 
-                              color: 'var(--red)', 
-                              fontWeight: 800, 
-                              padding: '0.2rem 0.5rem', 
-                              fontSize: '0.75rem',
-                              borderRadius: '4px',
-                              border: '1px solid rgba(239, 68, 68, 0.3)'
-                            }}>
-                              {d.blood_group}
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray mb-3">Lifesaver Points: <strong>{d.lifesaver_points || 0}</strong></p>
+                          <h4 className="text-red">{d.name}</h4>
+                          <p className="text-sm text-gray mb-4">Blood Group: <strong>{d.blood_group}</strong> | Points: <strong>{d.lifesaver_points || 0}</strong></p>
                           {!d.revealedPhone ? (
-                            <button className="btn btn-outline w-full" onClick={() => requestContact(d.id)}>
-                              Request Contact
-                            </button>
+                            <button className="btn btn-outline w-full mb-2" onClick={() => requestContact(d.id)}>Request Contact</button>
                           ) : (
-                            <div>
-                              <div className="phone-box mb-2">📞 {d.revealedPhone}</div>
-                              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <button className="btn btn-red text-sm" style={{ flex: 1 }} onClick={() => confirmDonation(d.id)}>
-                                  Confirm Handshake
-                                </button>
-                                <button className="btn btn-ghost text-sm" onClick={() => reportUser(d.id)}>
-                                  Report
-                                </button>
+                            <>
+                              <div className="phone-box mb-4">📞 {d.revealedPhone}</div>
+                              <div className="action-grid">
+                                <button className="btn btn-red text-sm" onClick={() => confirmDonation(d.id)}>Confirm Handshake</button>
+                                <button className="btn btn-ghost text-sm" onClick={() => reportUser(d.id)}>Report</button>
                               </div>
-                            </div>
+                            </>
                           )}
                         </div>
                       ))
@@ -288,16 +228,15 @@ export default function CommandCenter({ userProfile }) {
 
       {activeTab === 'tab-edit-profile' && (
         <section className="tab-content glass-panel border-red">
-          <h2 className="text-xl font-bold mb-1">Edit Profile</h2>
-          <p className="text-gray text-sm mb-6">Update your location or contact preferences.</p>
-          
+          <h2 className="section-title text-dark">Edit Profile</h2>
+          <p className="text-gray mb-6">Update your details below.</p>
           <form onSubmit={handleEditProfileSubmit} className="form-grid">
             <div className="input-group">
               <label>Full Name</label>
               <input type="text" value={editProfile.name} onChange={e => setEditProfile({...editProfile, name: e.target.value})} required />
             </div>
             <div className="input-group">
-              <label>Account Role</label>
+              <label>Role</label>
               <select value={editProfile.role} onChange={e => setEditProfile({...editProfile, role: e.target.value})} required>
                 <option value="donor">Donate Blood (Hero)</option>
                 <option value="requester">Request Blood</option>
@@ -316,12 +255,10 @@ export default function CommandCenter({ userProfile }) {
               <input type="number" min="100000" max="999999" value={editProfile.pincode} onChange={e => setEditProfile({...editProfile, pincode: e.target.value})} required />
             </div>
             <div className="input-group full-width">
-              <label>Phone Number (Private)</label>
+              <label>Phone Number (Kept Private)</label>
               <input type="text" value={editProfile.phone_number} onChange={e => setEditProfile({...editProfile, phone_number: e.target.value})} required />
             </div>
-            <div className="input-group full-width mt-2">
-              <button type="submit" className="btn btn-red w-full">Save Changes</button>
-            </div>
+            <button type="submit" className="btn btn-red full-width mt-4">Save Changes</button>
           </form>
         </section>
       )}
