@@ -39,12 +39,7 @@ export default function Navigation({ session, userProfile, onShowPublicRequest }
           <span className="text-red" style={{ fontWeight: 900 }}>RED</span><span className="text-dark">LINK</span>
         </div>
         <div className="flex-align">
-          <button onClick={onShowPublicRequest} className="btn btn-outline mr-4">
-            Request Blood
-          </button>
-          {!session ? (
-            <button onClick={handleLogin} className="btn btn-red">Join the Network</button>
-          ) : (
+          {session && (
             <div className="flex-align">
               <div className="avatar-circle">{session.user.email?.charAt(0).toUpperCase()}</div>
               <span className="text-sm text-gray mr-4 nav-email">{session.user.email}</span>

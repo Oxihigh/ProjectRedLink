@@ -110,20 +110,73 @@ export default function CommandCenter({ userProfile }) {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to permanently delete your account and all associated personal data? This action cannot be undone."
+    );
+    if (!confirmDelete) return;
+
+    try {
+      await supabase.from('users').delete().eq('id', userProfile.id);
+      await supabase.auth.signOut();
+      alert("Your account and all personal data have been permanently deleted.");
+      window.location.reload();
+    } catch (err) {
+      alert(`Failed to delete account: ${err.message}`);
+    }
+  };
+
   return (
-    <div className="app-container mt-10">
+    <div className="app-container mt-6">
       <PushNotificationPrompt />
-      <div className="app-tabs">
-        <button className={`tab-btn ${activeTab === 'tab-home' ? 'active' : ''}`} onClick={() => setActiveTab('tab-home')}>Home</button>
-        <button className={`tab-btn ${activeTab === 'tab-network' ? 'active' : ''}`} onClick={() => setActiveTab('tab-network')}>Network Actions</button>
-        <button className={`tab-btn ${activeTab === 'tab-edit-profile' ? 'active' : ''}`} onClick={() => setActiveTab('tab-edit-profile')}>Edit Profile</button>
+      
+      {/* Modern Segmented Tab Bar */}
+      <div className="segmented-tabs">
+        <button 
+          className={`segment-btn ${activeTab === 'tab-home' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('tab-home')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+          <span className="segment-label">Home</span>
+        </button>
+        
+        <button 
+          className={`segment-btn ${activeTab === 'tab-network' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('tab-network')}
+        >
+          {userProfile.role === 'donor' ? (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+          )}
+          <span className="segment-label">{userProfile.role === 'donor' ? 'Live Feed' : 'Find Donors'}</span>
+        </button>
+        
+        <button 
+          className={`segment-btn ${activeTab === 'tab-edit-profile' ? 'active' : ''}`} 
+          onClick={() => setActiveTab('tab-edit-profile')}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span className="segment-label">Profile</span>
+        </button>
       </div>
 
       {activeTab === 'tab-home' && (
         <section className="tab-content">
           <div className="overview-header">
             <h2 className="text-dark">Welcome back, <span className="text-red">{userProfile.name}</span></h2>
-            <p className="text-gray text-lg font-bold">{userProfile.role === 'donor' ? 'Donor Command Center' : 'Requester Command Center'}</p>
+            <p className="text-gray text-sm font-bold">{userProfile.role === 'donor' ? 'Donor Command Center' : 'Requester Command Center'}</p>
           </div>
           <div className="stats-grid">
             {userProfile.role === 'donor' && (
@@ -134,9 +187,9 @@ export default function CommandCenter({ userProfile }) {
             )}
             <div className="stat-card">
               <span className="stat-label">Medical Status</span>
-              <span className={`stat-value text-xl mt-2 ${userProfile.role === 'requester' ? '' : (eligibility.eligible ? 'text-red font-bold' : 'text-gray')}`}>
+              <div className={`stat-status-text ${userProfile.role === 'requester' ? '' : (eligibility.eligible ? 'text-red font-bold' : 'text-gray')}`}>
                 {userProfile.role === 'donor' ? eligibility.message : 'Active'}
-              </span>
+              </div>
             </div>
           </div>
         </section>
@@ -163,7 +216,14 @@ export default function CommandCenter({ userProfile }) {
                   ) : (
                     liveFeed.map(req => (
                       <div key={req.id} className="feed-item glass-panel border-red mb-4 p-4">
-                        <h4 className="text-red font-bold text-lg mb-1">🚨 {req.blood_group} Blood Needed</h4>
+                        <h4 className="text-red font-bold text-lg mb-1 flex-align gap-2">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                          </svg>
+                          {req.blood_group} Blood Needed
+                        </h4>
                         <p className="text-sm text-gray mb-1"><strong>Hospital:</strong> {req.hospital_name}</p>
                         <p className="text-sm text-gray mb-4"><strong>Location:</strong> {req.location_details || 'N/A'}</p>
                         {!req.volunteeredPhone ? (
@@ -171,7 +231,12 @@ export default function CommandCenter({ userProfile }) {
                         ) : (
                           <div className="mt-4 p-3 bg-dark text-white rounded">
                             <p className="mb-1 text-sm text-gray">Thank you, Hero!</p>
-                            <p className="font-bold">📞 {req.volunteeredPhone}</p>
+                            <p className="font-bold flex-align gap-2">
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                              </svg>
+                              {req.volunteeredPhone}
+                            </p>
                           </div>
                         )}
                       </div>
@@ -208,7 +273,12 @@ export default function CommandCenter({ userProfile }) {
                             <button className="btn btn-outline w-full mb-2" onClick={() => requestContact(d.id)}>Request Contact</button>
                           ) : (
                             <>
-                              <div className="phone-box mb-4">📞 {d.revealedPhone}</div>
+                              <div className="phone-box mb-4 flex-align gap-2" style={{ justifyContent: 'center' }}>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                </svg>
+                                {d.revealedPhone}
+                              </div>
                               <div className="action-grid">
                                 <button className="btn btn-red text-sm" onClick={() => confirmDonation(d.id)}>Confirm Handshake</button>
                                 <button className="btn btn-ghost text-sm" onClick={() => reportUser(d.id)}>Report</button>
@@ -260,6 +330,35 @@ export default function CommandCenter({ userProfile }) {
             </div>
             <button type="submit" className="btn btn-red full-width mt-4">Save Changes</button>
           </form>
+
+          {/* Legal & Account Deletion (App Store Compliance) */}
+          <div style={{ marginTop: '2.5rem', paddingTop: '1.5rem', borderTop: '2px solid var(--border)' }}>
+            <h3 className="font-outfit text-lg font-bold mb-2 text-dark">Data Privacy & Account Controls</h3>
+            <p className="text-gray text-xs mb-4">
+              In compliance with the DPDP Act and App Store guidelines, you can review our policies or permanently delete your account.
+            </p>
+            <div className="flex-align gap-2 mb-4" style={{ flexWrap: 'wrap' }}>
+              <a href="/privacy" className="btn btn-outline text-sm" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                Privacy Policy
+              </a>
+              <a href="/terms" className="btn btn-outline text-sm" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }}>
+                Terms of Service
+              </a>
+            </div>
+            
+            <div style={{ marginTop: '1.25rem', background: '#fff5f5', border: '2px solid var(--red)', padding: '1rem' }}>
+              <p className="font-bold text-red text-sm mb-1">Delete Account</p>
+              <p className="text-gray text-xs mb-3">Permanently remove your donor profile, phone number, and all associated data.</p>
+              <button 
+                type="button" 
+                onClick={handleDeleteAccount} 
+                className="btn btn-outline text-sm" 
+                style={{ borderColor: 'var(--red)', color: 'var(--red)', padding: '0.5rem 1rem' }}
+              >
+                Delete My Account & Personal Data
+              </button>
+            </div>
+          </div>
         </section>
       )}
     </div>

@@ -117,6 +117,22 @@ export default function Home() {
         {viewState === 'dashboard' && userProfile && (
           <CommandCenter userProfile={userProfile} />
         )}
+
+        {/* Legal & Compliance Footer */}
+        <footer style={{ marginTop: '5rem', paddingTop: '2rem', borderTop: '2px solid var(--border)', textAlign: 'center' }}>
+          <div className="flex-align gap-4" style={{ justifyContent: 'center', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+            <a href="/privacy" className="text-sm font-bold text-dark" style={{ textDecoration: 'none' }}>
+              Privacy Policy
+            </a>
+            <span className="text-gray">&bull;</span>
+            <a href="/terms" className="text-sm font-bold text-dark" style={{ textDecoration: 'none' }}>
+              Terms of Service
+            </a>
+          </div>
+          <p className="text-gray text-xs" style={{ maxWidth: '600px', margin: '0 auto', lineHeight: '1.5' }}>
+            Project Red-Link is a non-commercial voluntary blood donation coordination platform. Commercial buying or selling of blood is strictly prohibited by law.
+          </p>
+        </footer>
       </main>
     </>
   );

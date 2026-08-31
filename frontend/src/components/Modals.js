@@ -90,8 +90,11 @@ export function PublicRequestForm({ onClose }) {
           <div className="bg-red p-6 rounded mb-8 pulse-animation" style={{ color: 'var(--dark)' }}>
             <h2 className="font-outfit text-3xl font-bold mb-2">A Hero Has Volunteered!</h2>
             <p className="text-xl mb-4"><strong>{volunteerDetails.name}</strong> is willing to help!</p>
-            <div className="p-4 rounded" style={{ backgroundColor: 'var(--bg)', color: 'var(--red)', fontSize: '2rem', fontWeight: 'bold', border: '2px solid var(--red)' }}>
-              📞 {volunteerDetails.phone}
+            <div className="p-4 rounded flex-align" style={{ backgroundColor: 'var(--bg)', color: 'var(--red)', fontSize: '2rem', fontWeight: 'bold', border: '2px solid var(--red)', justifyContent: 'center', gap: '0.75rem' }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+              {volunteerDetails.phone}
             </div>
             <p className="mt-4 font-bold text-sm">Please call them immediately to coordinate.</p>
           </div>
@@ -106,7 +109,13 @@ export function PublicRequestForm({ onClose }) {
           <p className="text-gray mb-2 font-bold text-lg">Your Blood Donor Token</p>
           <div className="flex-align" style={{ justifyContent: 'center', gap: '1rem' }}>
             <h1 className="text-white" style={{ fontSize: '3.5rem', letterSpacing: '4px', margin: 0 }}>{successToken}</h1>
-            <button type="button" className="btn btn-outline" style={{ padding: '0.5rem 1rem' }} onClick={() => navigator.clipboard.writeText(successToken)} title="Copy Token">📋 Copy</button>
+            <button type="button" className="btn btn-outline flex-align gap-2" style={{ padding: '0.5rem 1rem' }} onClick={() => navigator.clipboard.writeText(successToken)} title="Copy Token">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy
+            </button>
           </div>
           <p className="text-red mt-4 text-sm font-bold">WARNING: Save this token! You will need it to close the request once you receive blood.</p>
         </div>
@@ -134,7 +143,12 @@ export function PublicRequestForm({ onClose }) {
           <div className="flex-align gap-2">
             <input type="number" min="100000" max="999999" placeholder="e.g. 100000" required style={{ flexGrow: 1 }}
               value={formData.pincode} onChange={e => setFormData({ ...formData, pincode: e.target.value })} />
-            <button type="button" className="btn btn-outline" onClick={handleDetectLoc} style={{ padding: '0.8rem' }} title="Detect Pincode">📍</button>
+            <button type="button" className="btn btn-outline" onClick={handleDetectLoc} style={{ padding: '0.8rem' }} title="Detect Pincode">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+            </button>
           </div>
         </div>
         <div className="input-group full-width">

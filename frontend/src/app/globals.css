@@ -405,7 +405,7 @@ select:focus {
   }
 
   .main-layout {
-    padding: calc(4.5rem + env(safe-area-inset-top)) 1.25rem calc(2.5rem + env(safe-area-inset-bottom));
+    padding: calc(5rem + env(safe-area-inset-top)) 1.25rem calc(2.5rem + env(safe-area-inset-bottom));
   }
 
   .action-grid {
@@ -413,14 +413,15 @@ select:focus {
   }
 
   .hero-title {
-    font-size: clamp(2.8rem, 12vw, 4.5rem);
-    line-height: 0.95;
+    font-size: clamp(2.4rem, 11vw, 3.8rem);
+    line-height: 0.92;
   }
 
   .hero-actions {
     flex-direction: column;
     width: 100%;
     align-items: stretch;
+    gap: 0.75rem;
   }
 
   .hero-actions .btn {
@@ -437,27 +438,52 @@ select:focus {
   }
   
   .nav-logout {
-    padding: 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    border: 2px solid var(--border);
+    box-shadow: 2px 2px 0px var(--border);
   }
 
   .logo {
-    font-size: 1.2rem;
+    font-size: 1.4rem;
   }
   
   .logo svg {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
 
   .btn {
-    padding: 0.8rem 1rem;
-    font-size: 0.9rem;
+    padding: 0.8rem 1.2rem;
+    font-size: 0.95rem;
   }
 
-  .premium-nav .btn {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.75rem;
+  .segmented-tabs {
+    gap: 0.4rem;
+  }
+
+  .segment-btn {
+    padding: 0.65rem 0.2rem;
+    font-size: 0.8rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    box-shadow: 2px 2px 0px var(--border);
+  }
+
+  .segment-btn.active {
+    box-shadow: 2px 2px 0px var(--red);
+  }
+
+  .segment-icon {
+    font-size: 1.1rem;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
+
+  .stat-status-text {
+    font-size: 1.1rem;
   }
 
   .push-prompt {
@@ -469,17 +495,6 @@ select:focus {
   .push-prompt button {
     margin-left: 0 !important;
     width: 100%;
-  }
-
-  .app-tabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    padding-bottom: 0.5rem;
-  }
-
-  .tab-btn {
-    flex: 0 0 auto;
   }
 
   .wizard-buttons {
@@ -615,39 +630,60 @@ select:focus {
   margin-right: 0.75rem;
 }
 
-/* App Sub-Navigation Tabs */
-.app-tabs {
-  display: flex;
-  gap: 1rem;
+/* App Sub-Navigation Tabs (Segmented Control) */
+.segmented-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
   margin-bottom: 2rem;
-  border-bottom: 3px solid var(--border);
-  padding-bottom: 1rem;
-  overflow-x: auto;
+  width: 100%;
 }
 
-.tab-btn {
-  padding: 0.6rem 1.2rem;
+.segment-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 0.5rem;
   font-family: 'Outfit', sans-serif;
   font-weight: 800;
+  font-size: 0.95rem;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
   background: var(--bg);
-  color: var(--text-light);
-  border: 3px solid transparent;
+  color: var(--text);
+  border: 3px solid var(--border);
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
+  box-shadow: 4px 4px 0px var(--border);
+}
+
+.segment-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0px var(--border);
+}
+
+.segment-btn.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--border);
+  box-shadow: 4px 4px 0px var(--red);
+}
+
+.segment-icon {
+  font-size: 1.1rem;
+}
+
+.segment-label {
   white-space: nowrap;
 }
 
-.tab-btn:hover {
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.tab-btn.active {
-  color: var(--bg);
-  background: var(--text);
-  border-color: var(--border);
-  box-shadow: 4px 4px 0px var(--red);
+.stat-status-text {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.35;
+  margin-top: 0.5rem;
+  word-break: break-word;
 }
 
 /* Home Overview Section */
@@ -656,7 +692,7 @@ select:focus {
 }
 
 .overview-header h2 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   line-height: 1.1;
   margin-bottom: 0.5rem;
 }
