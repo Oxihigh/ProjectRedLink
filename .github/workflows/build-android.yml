@@ -65,22 +65,24 @@ jobs:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Upload Debug APK Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: RedLink-Debug-APK
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: warn
+          retention-days: 14
+
       - name: Build Release Bundle (AAB)
         working-directory: frontend/android
         env:
           ANDROID_HOME: /usr/local/lib/android/sdk
         run: ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: Upload Debug APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: RedLink-Debug-APK
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
-          retention-days: 14
-
       - name: Upload Release AAB Artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: RedLink-Release-AAB
           path: frontend/android/app/build/outputs/bundle/release/app-release.aab
