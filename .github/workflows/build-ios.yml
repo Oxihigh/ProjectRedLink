@@ -1,0 +1,77 @@
+name: Build iOS App (Xcode)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS App Bundle
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build Next.js Static Export
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyCGL9XSRdWu9ZWriLxFw2wTpU2bPRuHMGM' }}
+          NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ secrets.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'redlinkproject.firebaseapp.com' }}
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'redlinkproject' }}
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ secrets.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'redlinkproject.firebasestorage.app' }}
+          NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '867840543171' }}
+          NEXT_PUBLIC_FIREBASE_APP_ID: ${{ secrets.NEXT_PUBLIC_FIREBASE_APP_ID || '1:867840543171:web:4b7295f5c8d79ea52bd576' }}
+          NEXT_PUBLIC_FIREBASE_VAPID_KEY: ${{ secrets.NEXT_PUBLIC_FIREBASE_VAPID_KEY || 'BISkzVsgz6tLWg4LTfOHoEXgNHNN3kraZQbhaViyVr8bSWlC9uNZS72xVokFCMJfBwa5X-DDWXlrCXooSmGgOIM' }}
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'https://project-red-link-back.vercel.app' }}
+        run: npm run build
+
+      - name: Sync Capacitor iOS
+        working-directory: frontend
+        run: npx cap sync ios
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build iOS App with Xcode
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -destination 'generic/platform=iOS' \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            clean build
+
+      - name: Package App Payload (.zip)
+        working-directory: frontend/ios/App
+        run: |
+          cd build/Release-iphoneos || cd build/Release || true
+          mkdir -p Payload
+          if [ -d "App.app" ]; then
+            cp -r App.app Payload/
+            zip -r RedLink-iOS-App.ipa Payload/
+          fi
+
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RedLink-iOS-App
+          path: frontend/ios/App/build/Release-iphoneos/
+          if-no-files-found: warn
+          retention-days: 14

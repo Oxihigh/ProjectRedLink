@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "cap:sync": "next build && npx cap sync android",
-    "cap:open": "npx cap open android"
+    "cap:open": "npx cap open android",
+    "cap:sync:ios": "next build && npx cap sync ios",
+    "cap:open:ios": "npx cap open ios",
+    "cap:sync:all": "next build && npx cap sync"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
@@ -16,6 +19,7 @@
     "@capacitor/browser": "^8.0.4",
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
+    "@capacitor/ios": "^8.5.0",
     "@capacitor/push-notifications": "^8.1.2",
     "@supabase/supabase-js": "^2.105.4",
     "firebase": "^12.16.0",
