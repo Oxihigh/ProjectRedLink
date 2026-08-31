@@ -1,12 +1,21 @@
 "use client";
 import { supabase } from "../utils/supabase";
 
+import { isNativeApp } from "../utils/notifications";
+
 export default function Hero({ onShowPublicRequest, onShowCloseRequest }) {
   const handleDonorClick = async () => {
     try {
+      const redirectUrl = isNativeApp()
+        ? 'com.projectredlink.app://auth'
+        : window.location.origin;
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin }
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: false
+        }
       });
       if (error) throw error;
     } catch (err) {

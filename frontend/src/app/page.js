@@ -7,6 +7,9 @@ import CommandCenter from "../components/CommandCenter";
 import { PublicRequestForm, CloseRequestForm } from "../components/Modals";
 import { supabase } from "../utils/supabase";
 
+import { App } from "@capacitor/app";
+import { isNativeApp } from "../utils/notifications";
+
 export default function Home() {
   const [session, setSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -21,7 +24,42 @@ export default function Home() {
       handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
+    let appUrlListener;
+    if (isNativeApp()) {
+      appUrlListener = App.addListener('appUrlOpen', async ({ url }) => {
+        console.log('App opened with deep link URL:', url);
+        if (url && (url.includes('access_token=') || url.includes('code='))) {
+          if (url.includes('#')) {
+            const hash = url.split('#')[1];
+            const params = new URLSearchParams(hash);
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+            if (access_token && refresh_token) {
+              const { data: { session } } = await supabase.auth.setSession({
+                access_token,
+                refresh_token,
+              });
+              if (session) handleSession(session);
+            }
+          } else if (url.includes('code=')) {
+            const fakeUrl = url.replace('com.projectredlink.app://', 'https://localhost/');
+            const parsedUrl = new URL(fakeUrl);
+            const code = parsedUrl.searchParams.get('code');
+            if (code) {
+              const { data: { session } } = await supabase.auth.exchangeCodeForSession(code);
+              if (session) handleSession(session);
+            }
+          }
+        }
+      });
+    }
+
+    return () => {
+      subscription.unsubscribe();
+      if (appUrlListener) {
+        appUrlListener.then(l => l.remove()).catch(() => {});
+      }
+    };
   }, []);
 
   const handleSession = async (session) => {
