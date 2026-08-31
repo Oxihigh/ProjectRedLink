@@ -61,6 +61,7 @@ jobs:
               -scheme App \
               -destination 'generic/platform=iOS' \
               -configuration Release \
+              -derivedDataPath ./DerivedData \
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
@@ -71,19 +72,19 @@ jobs:
               -scheme App \
               -destination 'generic/platform=iOS' \
               -configuration Release \
+              -derivedDataPath ./DerivedData \
               CODE_SIGNING_ALLOWED=NO \
               CODE_SIGN_IDENTITY="" \
               CODE_SIGNING_REQUIRED=NO \
               clean build
           fi
 
-      - name: Package App Payload (.zip)
+      - name: Package App (.ipa)
         working-directory: frontend/ios/App
         run: |
-          cd build/Release-iphoneos || cd build/Release || true
           mkdir -p Payload
-          if [ -d "App.app" ]; then
-            cp -r App.app Payload/
+          if [ -d "DerivedData/Build/Products/Release-iphoneos/App.app" ]; then
+            cp -r DerivedData/Build/Products/Release-iphoneos/App.app Payload/
             zip -r RedLink-iOS-App.ipa Payload/
           fi
 
@@ -91,6 +92,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: RedLink-iOS-App
-          path: frontend/ios/App/build/Release-iphoneos/
-          if-no-files-found: warn
+          path: |
+            frontend/ios/App/RedLink-iOS-App.ipa
+            frontend/ios/App/DerivedData/Build/Products/Release-iphoneos/App.app
+          if-no-files-found: error
           retention-days: 14
