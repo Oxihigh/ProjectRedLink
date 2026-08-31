@@ -2,8 +2,6 @@
 import { useState, useEffect, useRef } from "react";
 import { apiCall } from "../utils/api";
 
-
-
 export default function WizardRegistration({ onComplete }) {
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [disqualifiedReason, setDisqualifiedReason] = useState(null);
@@ -79,7 +77,7 @@ export default function WizardRegistration({ onComplete }) {
     setAlertMsg("");
     const cleanedPhone = wizData.phone_number.replace(/\D/g, '');
     if (cleanedPhone.length !== 10) {
-      setAlertMsg("Please enter a valid 10-digit Indian phone number (no country code).");
+      setAlertMsg("Please enter a valid 10-digit phone number.");
       return;
     }
     const formattedPhone = `+91${cleanedPhone}`;
@@ -112,12 +110,12 @@ export default function WizardRegistration({ onComplete }) {
   if (disqualifiedReason) {
     return (
       <div className="wizard-container">
-        <div className="wizard-step active">
+        <div className="glass-panel text-center p-6">
           <h2 className="wizard-question text-red">Eligibility Notice</h2>
-          <p className="text-gray text-xl mb-6" style={{ fontWeight: 600 }}>{disqualifiedReason}</p>
-          <p className="text-dark font-bold text-2xl mb-8">Thank you for your honesty and willingness to help!</p>
-          <div className="wizard-buttons">
-            <button type="button" className="btn btn-outline" onClick={() => window.location.reload()}>Cancel / Logout</button>
+          <p className="text-gray mb-6">{disqualifiedReason}</p>
+          <p className="text-white font-bold mb-6">Thank you for your honesty and willingness to help save lives.</p>
+          <div className="wizard-buttons" style={{ justifyContent: 'center' }}>
+            <button type="button" className="btn btn-outline" onClick={() => window.location.reload()}>Back to Home</button>
           </div>
         </div>
       </div>
@@ -127,21 +125,28 @@ export default function WizardRegistration({ onComplete }) {
   if (isSuccess) {
     return (
       <div className="wizard-container">
-        <div className="wizard-step active" style={{ textAlign: 'center' }}>
-          <h2 className="wizard-question text-red" style={{ fontSize: '2rem' }}>Profile Created!</h2>
-          <p className="text-gray text-xl mb-4">You're officially registered on RedLink.</p>
-          
-          <div className="bg-dark p-6 rounded" style={{ border: '2px solid var(--red)', margin: '1rem 0' }}>
-            <h3 className="text-white mb-4" style={{ fontSize: '1.2rem' }}>📱 Install Web App</h3>
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https://theredlinkproject.vercel.app/" alt="Install App QR Code" style={{ margin: '0 auto', borderRadius: '8px', border: '4px solid white' }} />
-            <p className="mt-4 text-gray text-sm" style={{ lineHeight: '1.5' }}>
-              <strong className="text-red">IMPORTANT:</strong> You will <strong className="text-red">ONLY</strong> receive emergency blood requests if you enable push notifications.
-              <br/> Scan this QR code on your phone and tap <strong>"Add to Home Screen"</strong> to install the app!
-            </p>
+        <div className="glass-panel text-center p-6">
+          <div style={{
+            width: '64px',
+            height: '64px',
+            background: 'rgba(34, 197, 94, 0.15)',
+            color: '#22c55e',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 1.5rem',
+            border: '1px solid rgba(34, 197, 94, 0.3)'
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
           </div>
+          <h2 className="wizard-question" style={{ color: '#ffffff' }}>Profile Created!</h2>
+          <p className="text-gray mb-6">You are now registered on Project Red-Link.</p>
           
-          <div className="wizard-buttons flex-align" style={{ justifyContent: 'center', marginTop: '2rem' }}>
-            <button className="btn btn-red" onClick={onComplete}>Done</button>
+          <div className="wizard-buttons" style={{ justifyContent: 'center' }}>
+            <button className="btn btn-red" onClick={onComplete}>Enter Command Center</button>
           </div>
         </div>
       </div>
@@ -149,28 +154,46 @@ export default function WizardRegistration({ onComplete }) {
   }
 
   const step = activeSteps[currentStepIdx];
+  const progressPercent = Math.round(((currentStepIdx + 1) / activeSteps.length) * 100);
 
   return (
     <div className="wizard-container" onKeyDown={handleKeyDown}>
+      {/* Progress Bar */}
+      <div style={{
+        width: '100%',
+        height: '4px',
+        background: 'var(--surface-elevated)',
+        borderRadius: '4px',
+        marginBottom: '2rem',
+        overflow: 'hidden'
+      }}>
+        <div style={{
+          width: `${progressPercent}%`,
+          height: '100%',
+          background: 'var(--red)',
+          transition: 'width 0.3s ease'
+        }}></div>
+      </div>
+
       {step === 'step-role' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Welcome to RedLink! Are you here to Donate Blood or Request Blood?</h2>
+          <h2 className="wizard-question">Welcome to RedLink! What would you like to do?</h2>
           <div className="wizard-buttons" style={{ flexDirection: 'column' }}>
-            <button className={`btn ${wizData.role === 'donor' ? 'btn-red' : 'btn-outline'}`} 
-              style={{ fontSize: '1.5rem' }} 
+            <button className="btn btn-red" 
+              style={{ padding: '1.25rem', fontSize: '1.05rem', justifyContent: 'flex-start' }} 
               onClick={() => { 
                 setWizData(prev => ({...prev, role: 'donor'})); 
                 setCurrentStepIdx(1); 
               }}>
-              I am here to Donate Blood (Hero)
+              ❤️ I want to Donate Blood (Hero)
             </button>
-            <button className={`btn ${wizData.role === 'requester' ? 'btn-red' : 'btn-outline'}`} 
-              style={{ fontSize: '1.5rem' }} 
+            <button className="btn btn-outline" 
+              style={{ padding: '1.25rem', fontSize: '1.05rem', justifyContent: 'flex-start' }} 
               onClick={() => { 
                 setWizData(prev => ({...prev, role: 'requester'})); 
                 setCurrentStepIdx(1); 
               }}>
-              I need to Request Blood
+              🏥 I need to Request Blood
             </button>
           </div>
           {alertMsg && <p className="wizard-alert">{alertMsg}</p>}
@@ -179,8 +202,8 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-name' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Hi there! To get started, what's your full name?</h2>
-          <input ref={inputRef} type="text" className="wizard-input" placeholder="Enter your full name" 
+          <h2 className="wizard-question">What's your full name?</h2>
+          <input ref={inputRef} type="text" className="wizard-input" placeholder="e.g. Rahul Sharma" 
             value={wizData.name} onChange={e => setWizData({...wizData, name: e.target.value})} />
           <div className="wizard-buttons">
             <button className="btn btn-outline" onClick={handlePrev}>Back</button>
@@ -192,7 +215,7 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-bg' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Nice to meet you, <span className="text-red">{wizData.name}</span>! Heroes save lives. What's your blood group?</h2>
+          <h2 className="wizard-question">What's your blood group?</h2>
           <select className="wizard-select" value={wizData.blood_group} onChange={e => setWizData({...wizData, blood_group: e.target.value})}>
             {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
           </select>
@@ -205,8 +228,8 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-weight' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">What is your weight in kg?</h2>
-          <input ref={inputRef} type="number" className="wizard-input" placeholder="e.g. 60" min="20" max="300"
+          <h2 className="wizard-question">What is your weight (in kg)?</h2>
+          <input ref={inputRef} type="number" className="wizard-input" placeholder="e.g. 65" min="20" max="300"
             value={wizData.weight} onChange={e => setWizData({...wizData, weight: e.target.value})} />
           <div className="wizard-buttons">
             <button className="btn btn-outline" onClick={handlePrev}>Back</button>
@@ -218,10 +241,10 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-medication' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Are you currently taking any disqualifying medication, such as an asthma inhaler?</h2>
+          <h2 className="wizard-question">Are you taking any disqualifying medication, like an asthma inhaler?</h2>
           <div className="wizard-buttons" style={{ flexDirection: 'column' }}>
-            <button className="btn btn-outline" style={{ fontSize: '1.5rem' }} onClick={handleNext}>No, I am not</button>
-            <button className="btn btn-red" style={{ fontSize: '1.5rem' }} 
+            <button className="btn btn-outline" style={{ padding: '1rem', fontSize: '1rem' }} onClick={handleNext}>No, I am not</button>
+            <button className="btn btn-red" style={{ padding: '1rem', fontSize: '1rem' }} 
               onClick={() => disqualify("You cannot donate blood if you are using certain medications like an asthma inhaler.")}>Yes, I am</button>
           </div>
         </div>
@@ -229,7 +252,7 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-last-donation' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">When was your last donation? (Leave blank if never)</h2>
+          <h2 className="wizard-question">When was your last donation? (Optional)</h2>
           <input ref={inputRef} type="date" className="wizard-input" 
             value={wizData.last_donation_date} onChange={e => setWizData({...wizData, last_donation_date: e.target.value})} />
           <div className="wizard-buttons">
@@ -241,8 +264,8 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-pincode' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Got it. To connect you locally, what's your 6-digit pincode?</h2>
-          <input ref={inputRef} type="number" className="wizard-input" placeholder="e.g. 100000" min="100000" max="999999"
+          <h2 className="wizard-question">What is your 6-digit residential pincode?</h2>
+          <input ref={inputRef} type="number" className="wizard-input" placeholder="e.g. 110001" min="100000" max="999999"
             value={wizData.pincode} onChange={e => setWizData({...wizData, pincode: e.target.value})} />
           <div className="wizard-buttons">
             <button className="btn btn-outline" onClick={handlePrev}>Back</button>
@@ -254,8 +277,8 @@ export default function WizardRegistration({ onComplete }) {
 
       {step === 'step-phone' && (
         <div className="wizard-step active">
-          <h2 className="wizard-question">Almost done! What's your 10-digit phone number? We keep this private.</h2>
-          <input ref={inputRef} type="text" className="wizard-input" placeholder="e.g. 9876543210"
+          <h2 className="wizard-question">What's your 10-digit mobile number?</h2>
+          <input ref={inputRef} type="tel" className="wizard-input" placeholder="e.g. 9876543210"
             value={wizData.phone_number} onChange={e => setWizData({...wizData, phone_number: e.target.value})} />
           <div className="wizard-buttons">
             <button className="btn btn-outline" onClick={handlePrev}>Back</button>
