@@ -1,71 +1,68 @@
 "use client";
 import { useState, useEffect } from "react";
-import { requestNotificationPermission, onMessageListener } from "../utils/firebase";
-import { apiCall } from "../utils/api";
+import { registerForPushNotifications, isNativeApp } from "../utils/notifications";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 export default function PushNotificationPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState("default");
 
-  const setupMessageListener = () => {
-    onMessageListener((payload) => {
-      console.log("Foreground message received:", payload);
-      if (payload.notification) {
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(payload.notification.title, {
-              body: payload.notification.body,
-              icon: payload.notification.image || '/icon.png',
-              data: payload.data
-            });
+  const showInAppNotification = (payload) => {
+    console.log("Foreground message received:", payload);
+    const title = payload.title || payload.notification?.title || "Urgent Blood Alert";
+    const body = payload.body || payload.notification?.body || "A blood donation is needed nearby.";
+    const icon = payload.image || payload.notification?.image || "/icon.png";
+
+    if (typeof window !== "undefined") {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.ready.then((registration) => {
+          registration.showNotification(title, {
+            body,
+            icon,
+            data: payload.data || {},
           });
-        } else {
-          // Fallback for browsers that support Notification constructor
-          new Notification(payload.notification.title, {
-            body: payload.notification.body,
-            icon: payload.notification.image || '/icon.png',
-            data: payload.data
-          });
-        }
+        }).catch(() => {
+          new Notification(title, { body, icon });
+        });
+      } else if ("Notification" in window) {
+        new Notification(title, { body, icon });
       }
-    });
+    }
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setPermissionStatus(Notification.permission);
-      if (Notification.permission === "default") {
-        setShowPrompt(true);
-      } else if (Notification.permission === "granted") {
-        // Automatically fetch and save token if already granted
-        requestNotificationPermission().then(token => {
-          if (token) {
-            apiCall('/users/fcm-token', 'PATCH', { fcm_token: token }).catch(console.error);
+    async function checkCurrentPermission() {
+      if (isNativeApp()) {
+        try {
+          const status = await PushNotifications.checkPermissions();
+          if (status.receive === "granted") {
+            setPermissionStatus("granted");
+            registerForPushNotifications(showInAppNotification);
+          } else {
+            setShowPrompt(true);
           }
-        });
-        
-        setupMessageListener();
+        } catch (e) {
+          setShowPrompt(true);
+        }
+      } else if (typeof window !== "undefined" && "Notification" in window) {
+        setPermissionStatus(Notification.permission);
+        if (Notification.permission === "default") {
+          setShowPrompt(true);
+        } else if (Notification.permission === "granted") {
+          registerForPushNotifications(showInAppNotification);
+        }
       }
     }
+
+    checkCurrentPermission();
   }, []);
 
   const handleEnable = async () => {
-    const token = await requestNotificationPermission();
+    const token = await registerForPushNotifications(showInAppNotification);
     if (token) {
       setShowPrompt(false);
       setPermissionStatus("granted");
-      
-      setupMessageListener();
-      
-      // Send token to backend
-      try {
-        await apiCall('/users/fcm-token', 'PATCH', { fcm_token: token });
-        console.log("FCM token saved to backend");
-      } catch (err) {
-        console.error("Failed to save FCM token", err);
-      }
     } else {
-      setPermissionStatus(Notification.permission);
       setShowPrompt(false);
     }
   };

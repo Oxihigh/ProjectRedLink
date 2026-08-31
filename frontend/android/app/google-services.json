@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "867840543171",
+    "project_id": "redlinkproject",
+    "storage_bucket": "redlinkproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:867840543171:android:dbc3276c7f4bca092bd576",
+        "android_client_info": {
+          "package_name": "com.projectredlink.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC5G78xnGIi1mxtVOQqzmfXb5ovUKPhcPU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
