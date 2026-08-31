@@ -4,9 +4,32 @@ import { apiCall } from "../utils/api";
 import { supabase } from "../utils/supabase";
 import PushNotificationPrompt from "./PushNotificationPrompt";
 
+// Instant client-side eligibility calculation (0ms load time)
+function computeEligibility(profile) {
+  if (profile.role !== 'donor') return { eligible: true, message: 'Active' };
+  if (!profile.last_donation_date) {
+    return { eligible: true, message: "You're a Hero (First time donor)" };
+  }
+  try {
+    const dStr = String(profile.last_donation_date).split('T')[0];
+    const lastDonation = new Date(dStr);
+    const today = new Date();
+    const diffTime = today.getTime() - lastDonation.getTime();
+    const daysSince = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+    
+    if (daysSince >= 90) {
+      return { eligible: true, message: "You're a Hero Again! You are eligible to donate." };
+    } else {
+      return { eligible: false, message: `Not eligible yet. Please wait ${90 - daysSince} more days.` };
+    }
+  } catch {
+    return { eligible: true, message: "You're a Hero! You are eligible to donate." };
+  }
+}
+
 export default function CommandCenter({ userProfile }) {
   const [activeTab, setActiveTab] = useState('tab-home');
-  const [eligibility, setEligibility] = useState({ eligible: false, message: 'Checking...' });
+  const [eligibility, setEligibility] = useState(() => computeEligibility(userProfile));
   const [liveFeed, setLiveFeed] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
   
@@ -19,29 +42,35 @@ export default function CommandCenter({ userProfile }) {
   });
 
   useEffect(() => {
+    // Recompute immediately if userProfile updates
+    const currentEligibility = computeEligibility(userProfile);
+    setEligibility(currentEligibility);
+
     if (userProfile.role === 'donor') {
       let channel;
-      
-      apiCall('/check-eligibility').then(res => {
-        setEligibility(res);
-        
-        if (res.eligible) {
-          // Fetch initial active requests for their pincode and blood group
-          supabase.from('blood_requests')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .then(({ data }) => {
-              if (data) setLiveFeed(data);
-            });
 
-          // Donor realtime feed
-          channel = supabase.channel(`public:blood_requests:${Date.now()}`)
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'blood_requests' }, payload => {
-              setLiveFeed(prev => [payload.new, ...prev]);
-            })
-            .subscribe();
-        }
-      }).catch(console.error);
+      // 1. Fetch initial blood requests directly from Supabase (Instant <100ms)
+      supabase.from('blood_requests')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20)
+        .then(({ data }) => {
+          if (data) setLiveFeed(data);
+        });
+
+      // 2. Setup Realtime subscription
+      channel = supabase.channel(`public:blood_requests:${userProfile.id}`)
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'blood_requests' }, payload => {
+          setLiveFeed(prev => [payload.new, ...prev]);
+        })
+        .subscribe();
+
+      // 3. Non-blocking background verification with API
+      apiCall('/check-eligibility')
+        .then(res => {
+          if (res && res.message) setEligibility(res);
+        })
+        .catch(() => {}); // Fail silently without breaking UI
 
       return () => {
         if (channel) supabase.removeChannel(channel);

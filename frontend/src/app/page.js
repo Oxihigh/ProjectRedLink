@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navigation from "../components/Navigation";
 import Hero from "../components/Hero";
 import WizardRegistration from "../components/WizardRegistration";
@@ -14,8 +14,14 @@ export default function Home() {
   const [session, setSession] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
   const [viewState, setViewState] = useState('hero'); // hero, public-req, close-req, register, dashboard
+  const handledUserRef = useRef(null);
 
   useEffect(() => {
+    // 1. Non-blocking background warmup ping for Python backend
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://project-red-link-back.vercel.app';
+    fetch(apiUrl, { method: 'GET' }).catch(() => {});
+
+    // 2. Fetch session once
     supabase.auth.getSession().then(({ data: { session } }) => {
       handleSession(session);
     });
@@ -39,7 +45,7 @@ export default function Home() {
                 access_token,
                 refresh_token,
               });
-              if (session) handleSession(session);
+              if (session) handleSession(session, true);
             }
           } else if (url.includes('code=')) {
             const fakeUrl = url.replace('com.projectredlink.app://', 'https://localhost/');
@@ -47,7 +53,7 @@ export default function Home() {
             const code = parsedUrl.searchParams.get('code');
             if (code) {
               const { data: { session } } = await supabase.auth.exchangeCodeForSession(code);
-              if (session) handleSession(session);
+              if (session) handleSession(session, true);
             }
           }
         }
@@ -62,9 +68,15 @@ export default function Home() {
     };
   }, []);
 
-  const handleSession = async (session) => {
+  const handleSession = async (session, force = false) => {
     setSession(session);
     if (session) {
+      // Prevent duplicate fetches for the same user unless forced
+      if (!force && handledUserRef.current === session.user.id && userProfile) {
+        return;
+      }
+      handledUserRef.current = session.user.id;
+
       const { data, error } = await supabase.from('users').select('*').eq('id', session.user.id).maybeSingle();
       if (error || !data) {
         setViewState('register');
@@ -73,6 +85,7 @@ export default function Home() {
         setViewState('dashboard');
       }
     } else {
+      handledUserRef.current = null;
       setUserProfile(null);
       setViewState('hero');
     }
