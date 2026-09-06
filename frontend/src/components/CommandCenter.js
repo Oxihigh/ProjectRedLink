@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { apiCall } from "../utils/api";
 import { supabase } from "../utils/supabase";
 import PushNotificationPrompt from "./PushNotificationPrompt";
+import { PublicRequestForm, CloseRequestForm } from "./Modals";
 
 // Instant client-side eligibility calculation (0ms load time)
 function computeEligibility(profile) {
@@ -29,6 +30,7 @@ function computeEligibility(profile) {
 
 export default function CommandCenter({ userProfile }) {
   const [activeTab, setActiveTab] = useState('tab-home');
+  const [requestMode, setRequestMode] = useState('create');
   const [eligibility, setEligibility] = useState(() => computeEligibility(userProfile));
   const [liveFeed, setLiveFeed] = useState([]);
   const [searchResults, setSearchResults] = useState(null);
@@ -188,6 +190,20 @@ export default function CommandCenter({ userProfile }) {
           )}
           <span className="segment-label">{userProfile.role === 'donor' ? 'Live Feed' : 'Find Donors'}</span>
         </button>
+
+        <button 
+          className={`segment-btn ${activeTab === 'tab-request' ? 'active' : ''}`} 
+          onClick={() => {
+            setRequestMode('create');
+            setActiveTab('tab-request');
+          }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          <span className="segment-label">Request Blood</span>
+        </button>
         
         <button 
           className={`segment-btn ${activeTab === 'tab-edit-profile' ? 'active' : ''}`} 
@@ -221,6 +237,81 @@ export default function CommandCenter({ userProfile }) {
               </div>
             </div>
           </div>
+
+          {/* Emergency Blood Action Banner */}
+          <div className="glass-panel border-red p-6 mt-6" style={{ background: '#fffcfc' }}>
+            <div className="flex-align gap-2 mb-2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-red">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <h3 className="font-outfit text-xl font-bold text-dark m-0">Urgent Blood Need?</h3>
+            </div>
+            <p className="text-gray text-sm mb-4">
+              Need blood urgently for a patient, yourself, or family? Broadcast an instant alert to all compatible donors within a 10km radius.
+            </p>
+            <div className="flex-align gap-3" style={{ flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn btn-red text-sm" 
+                onClick={() => {
+                  setRequestMode('create');
+                  setActiveTab('tab-request');
+                }}
+              >
+                Broadcast Emergency Request
+              </button>
+              <button 
+                type="button"
+                className="btn btn-outline text-sm" 
+                onClick={() => {
+                  setRequestMode('close');
+                  setActiveTab('tab-request');
+                }}
+              >
+                Have a Blood Donor Token?
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeTab === 'tab-request' && (
+        <section className="tab-content">
+          <div className="flex-align gap-2 mb-4" style={{ flexWrap: 'wrap' }}>
+            <button 
+              type="button"
+              className={`btn ${requestMode === 'create' ? 'btn-red' : 'btn-outline'} text-sm`} 
+              style={{ padding: '0.6rem 1.2rem' }}
+              onClick={() => setRequestMode('create')}
+            >
+              Broadcast New Emergency
+            </button>
+            <button 
+              type="button"
+              className={`btn ${requestMode === 'close' ? 'btn-red' : 'btn-outline'} text-sm`} 
+              style={{ padding: '0.6rem 1.2rem' }}
+              onClick={() => setRequestMode('close')}
+            >
+              Close Request with Token
+            </button>
+          </div>
+
+          {requestMode === 'create' ? (
+            <PublicRequestForm 
+              userProfile={userProfile} 
+              isEmbedded={true}
+              onClose={() => setActiveTab('tab-home')} 
+            />
+          ) : (
+            <CloseRequestForm 
+              onClose={() => {
+                setRequestMode('create');
+                setActiveTab('tab-home');
+              }} 
+            />
+          )}
         </section>
       )}
 

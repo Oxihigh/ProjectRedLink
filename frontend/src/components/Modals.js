@@ -2,14 +2,25 @@
 import { useState, useEffect } from "react";
 import { apiCall } from "../utils/api";
 
-export function PublicRequestForm({ onClose }) {
+export function PublicRequestForm({ userProfile, onClose, isEmbedded = false }) {
   const [formData, setFormData] = useState({
-    blood_group: 'A+',
-    pincode: '',
+    blood_group: userProfile?.blood_group || 'A+',
+    pincode: userProfile?.pincode ? String(userProfile.pincode) : '',
     hospital_name: '',
-    phone_number: '',
+    phone_number: userProfile?.phone_number || '',
     location_details: ''
   });
+
+  useEffect(() => {
+    if (userProfile) {
+      setFormData(prev => ({
+        ...prev,
+        blood_group: prev.blood_group || userProfile.blood_group || 'A+',
+        pincode: prev.pincode || (userProfile.pincode ? String(userProfile.pincode) : ''),
+        phone_number: prev.phone_number || userProfile.phone_number || ''
+      }));
+    }
+  }, [userProfile]);
 
   const [successToken, setSuccessToken] = useState(null);
   const [volunteerDetails, setVolunteerDetails] = useState(null);
@@ -128,9 +139,16 @@ export function PublicRequestForm({ onClose }) {
   }
 
   return (
-    <section className="glass-panel p-8 border-red mt-10">
+    <section className={`glass-panel p-8 border-red ${isEmbedded ? 'mt-2' : 'mt-10'}`}>
       <h2 className="section-title text-dark">Broadcast Emergency Request</h2>
-      <p className="text-gray mb-6">Requesting blood is open to the public and does not require an account. This will instantly alert local donors.</p>
+      <p className="text-gray mb-4">
+        Requesting blood is open to all registered members and the public. This will instantly alert compatible local donors.
+      </p>
+      {userProfile && (
+        <div className="mb-6 p-2 px-3 inline-block bg-dark text-white text-xs font-bold" style={{ border: '1px solid var(--border)', letterSpacing: '0.5px' }}>
+          REQUESTING AS <span className="text-red">{userProfile.name?.toUpperCase()}</span> ({userProfile.role?.toUpperCase()}) &bull; PHONE &amp; PINCODE AUTO-FILLED
+        </div>
+      )}
       <form onSubmit={handleSubmit} className="form-grid">
         <div className="input-group">
           <label>Required Blood Group</label>

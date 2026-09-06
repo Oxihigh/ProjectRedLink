@@ -116,7 +116,7 @@ export default function Home() {
         )}
         
         {viewState === 'public-req' && (
-          <PublicRequestForm onClose={resetView} />
+          <PublicRequestForm userProfile={userProfile} onClose={resetView} />
         )}
 
         {viewState === 'close-req' && (
